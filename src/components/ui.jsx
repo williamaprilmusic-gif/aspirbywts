@@ -1,0 +1,169 @@
+import React from 'react'
+
+export function Card({ className = '', strong = false, children, glow = false }) {
+  return (
+    <div
+      className={`${strong ? 'glass-strong' : 'glass'} p-5 sm:p-6 transition-all duration-300 ${
+        glow ? 'hover:shadow-glow' : 'hover:border-white/20'
+      } ${className}`}
+    >
+      {children}
+    </div>
+  )
+}
+
+export function Badge({ children, color = 'emerald', className = '' }) {
+  const map = {
+    emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+    violet: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
+    slate: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+    amber: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    rose: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${map[color]} ${className}`}
+    >
+      {children}
+    </span>
+  )
+}
+
+export function Button({ children, variant = 'primary', className = '', icon: Icon, ...props }) {
+  const base =
+    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-400/50'
+  const variants = {
+    primary:
+      'bg-gradient-to-r from-emerald-500 to-violet-500 text-white shadow-glow hover:brightness-110 hover:shadow-glow-violet active:scale-[.98]',
+    ghost: 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:border-white/20',
+    subtle: 'bg-white/5 text-slate-300 hover:bg-white/10',
+    danger: 'border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20',
+  }
+  return (
+    <button className={`${base} ${variants[variant]} ${className}`} {...props}>
+      {Icon && <Icon className="h-4 w-4" />}
+      {children}
+    </button>
+  )
+}
+
+export function ProgressBar({ value, max = 100, className = '', gradient = true }) {
+  const pct = Math.min(100, Math.round((value / max) * 100)) || 0
+  return (
+    <div className={`h-2.5 w-full overflow-hidden rounded-full bg-white/10 ${className}`}>
+      <div
+        className={`h-full rounded-full transition-all duration-500 ${
+          gradient ? 'bg-gradient-to-r from-emerald-400 to-violet-400' : 'bg-emerald-400'
+        }`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  )
+}
+
+export function Field({ label, hint, children, className = '' }) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-1.5 flex items-center justify-between text-sm font-medium text-slate-300">
+        <span>{label}</span>
+        {hint && <span className="text-xs font-normal text-slate-500">{hint}</span>}
+      </span>
+      {children}
+    </label>
+  )
+}
+
+const inputBase =
+  'w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20'
+
+export function TextInput(props) {
+  return <input {...props} className={`${inputBase} ${props.className || ''}`} />
+}
+
+export function TextArea(props) {
+  return <textarea {...props} className={`${inputBase} min-h-[96px] resize-y ${props.className || ''}`} />
+}
+
+export function Select({ options = [], ...props }) {
+  return (
+    <select {...props} className={`${inputBase} appearance-none ${props.className || ''}`}>
+      {options.map((o) => (
+        <option key={o.value} value={o.value} className="bg-slate-900">
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+export function Stat({ label, value, sub, color = 'emerald', icon: Icon }) {
+  const ring = {
+    emerald: 'from-emerald-500/20 text-emerald-300',
+    violet: 'from-violet-500/20 text-violet-300',
+    amber: 'from-amber-500/20 text-amber-300',
+    rose: 'from-rose-500/20 text-rose-300',
+  }
+  return (
+    <div className="glass p-4">
+      <div className="flex items-center gap-3">
+        {Icon && (
+          <div className={`grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br ${ring[color]} to-transparent`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        )}
+        <div>
+          <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
+          <div className="text-xl font-bold text-slate-100">{value}</div>
+          {sub && <div className="text-xs text-slate-500">{sub}</div>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function EmptyState({ icon: Icon, title, children, action }) {
+  return (
+    <div className="glass flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      {Icon && (
+        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-violet-500/20 text-emerald-300">
+          <Icon className="h-7 w-7" />
+        </div>
+      )}
+      <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+      <p className="max-w-md text-sm text-slate-400">{children}</p>
+      {action}
+    </div>
+  )
+}
+
+// Circular score gauge
+export function ScoreRing({ score = 0, size = 132 }) {
+  const stroke = 11
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const offset = c - (score / 100) * c
+  const color = score >= 75 ? '#10b981' : score >= 55 ? '#8b5cf6' : '#f59e0b'
+  return (
+    <div className="relative grid place-items-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} fill="none" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={stroke}
+          fill="none"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 1s ease', filter: `drop-shadow(0 0 6px ${color}88)` }}
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-3xl font-extrabold text-slate-100">{score}%</span>
+        <span className="text-[10px] uppercase tracking-widest text-slate-400">Fit</span>
+      </div>
+    </div>
+  )
+}
