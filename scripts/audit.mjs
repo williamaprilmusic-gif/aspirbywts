@@ -14,6 +14,7 @@ import { computeScenario, defaultScenario } from '../src/engine/scenario.js'
 import { readinessScore, nextActions, pipelineFunnel, roadmapStats } from '../src/engine/insights.js'
 import { generateLeads, leadsToCSV } from '../src/engine/leadFinder.js'
 import { generateOutreach } from '../src/engine/outreach.js'
+import { buildOverpassQuery, mapElements, companyLinks } from '../src/engine/liveFinder.js'
 import { generateCompetitors } from '../src/engine/competitors.js'
 import { encodeBlueprint, decodeBlueprint } from '../src/engine/share.js'
 import {
@@ -127,6 +128,26 @@ assert(generateLeads({ city: 'Austin', targetModel: 'b2b-saas', count: 4 }).loca
 assert(generateLeads({ targetModel: 'b2b-saas', count: 3 }).location === 'Your region', 'no-location falls back to Your region')
 const msg = generateOutreach({ prospect: { ...res.targets[0], name: res.targets[0].title }, blueprint: bpg })
 assert(msg.email && msg.dm && msg.followUp, 'outreach generates all variants')
+
+// Live finder pure helpers (no network)
+const oq = buildOverpassQuery(-33.9, 18.4, 12000)
+assert(oq.includes('around:12000,-33.9,18.4') && oq.includes('out:json'), 'overpass query is well-formed')
+const mapped = mapElements(
+  [
+    { tags: { name: 'Cape Logistics Co', office: 'logistics', website: 'https://capelog.co.za' }, lat: -33.9, lon: 18.4 },
+    { tags: { name: 'Table Mountain IT', office: 'it' }, center: { lat: -33.8, lon: 18.5 } },
+    { tags: { name: 'Cape Logistics Co', office: 'logistics' } }, // duplicate
+    { tags: { office: 'company' } }, // no name → dropped
+  ],
+  { industry: 'logistics', location: 'Cape Town, South Africa' },
+)
+assert(mapped.length === 2, 'mapElements dedupes by name and drops unnamed')
+assert(mapped[0].name === 'Cape Logistics Co' && mapped[0].relevance === 1, 'industry match ranked first')
+assert(mapped.every((c) => c.location === 'Cape Town, South Africa'), 'mapped companies carry the location')
+const cl = companyLinks(mapped[0], { city: 'Cape Town', country: 'South Africa' })
+assert(cl.website === 'https://capelog.co.za', 'company website used when present')
+const cl2 = companyLinks({ name: 'Table Mountain IT', lat: -33.8, lon: 18.5 }, { city: 'Cape Town', country: 'South Africa' })
+assert(cl2.website.startsWith('https://www.google.com/search?q=') && cl2.maps.includes('-33.8,18.5'), 'fallback website = search, maps uses coords')
 
 // --- 8. Competitors -------------------------------------------------------
 const comp = generateCompetitors(bpg)
