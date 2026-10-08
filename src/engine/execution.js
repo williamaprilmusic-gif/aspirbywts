@@ -226,9 +226,11 @@ export function attentionItems(bp, { prospects = [], savedBlueprints = [] } = {}
     push('medium', 'prospects', 'No saved prospects yet — find your first targets.', 'finder')
   } else {
     const now = Date.now()
-    const stale = mine.filter(
-      (p) => ['Saved', 'Contacted', 'Replied'].includes(p.status) && p.savedAt && now - new Date(p.savedAt).getTime() > 7 * DAY,
-    ).length
+    const stale = mine.filter((p) => {
+      if (!['Saved', 'Contacted', 'Replied'].includes(p.status)) return false
+      const last = p.updatedAt || p.savedAt
+      return last && now - new Date(last).getTime() > 7 * DAY
+    }).length
     if (stale > 0) push('medium', 'stale', `${stale} prospect${stale === 1 ? '' : 's'} with no movement in 7+ days — follow up.`, 'pipeline')
   }
 

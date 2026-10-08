@@ -185,6 +185,19 @@ const handled = { ...freshBp, startDate: '2999-01-01' }
 handled.validation = freshBp.validation // undefined ok
 const attn2 = attentionItems(handled, { prospects: [], savedBlueprints: [handled] })
 assert(!attn2.some((a) => a.kind === 'save'), 'saved blueprint not flagged for saving')
+// Stale-prospect nag uses last activity (updatedAt), not original savedAt
+const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+const fresh = new Date().toISOString()
+const staleAttn = attentionItems(freshBp, {
+  prospects: [{ blueprintId: freshBp.id, status: 'Contacted', savedAt: old, updatedAt: old }],
+  savedBlueprints: [freshBp],
+})
+assert(staleAttn.some((a) => a.kind === 'stale'), 'a prospect untouched for 10 days is flagged stale')
+const activeAttn = attentionItems(freshBp, {
+  prospects: [{ blueprintId: freshBp.id, status: 'Contacted', savedAt: old, updatedAt: fresh }],
+  savedBlueprints: [freshBp],
+})
+assert(!activeAttn.some((a) => a.kind === 'stale'), 'a recently-updated prospect is NOT flagged stale')
 
 // --- 13. Goals & targets --------------------------------------------------
 const goalBp = generateBlueprint(TECH_FOUNDER_DEMO)

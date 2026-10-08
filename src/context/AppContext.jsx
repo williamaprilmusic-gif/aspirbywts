@@ -129,7 +129,8 @@ export function AppProvider({ children }) {
   const deleteBlueprint = useCallback(
     (id) => {
       setSavedBlueprints((prev) => prev.filter((b) => b.id !== id))
-      setActiveBlueprint((cur) => (cur && cur.id === id ? cur : cur))
+      // If the deleted enterprise was the one being viewed, clear it.
+      setActiveBlueprint((cur) => (cur && cur.id === id ? null : cur))
       notify('Enterprise deleted', 'info')
     },
     [notify],
@@ -211,6 +212,7 @@ export function AppProvider({ children }) {
             blueprintId: blueprint ? blueprint.id : null,
             productName: blueprint ? blueprint.concept.productName : null,
             savedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
           ...prev,
         ]
@@ -228,7 +230,9 @@ export function AppProvider({ children }) {
   )
 
   const updateProspect = useCallback((key, patch) => {
-    setProspects((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)))
+    setProspects((prev) =>
+      prev.map((p) => (p.key === key ? { ...p, ...patch, updatedAt: new Date().toISOString() } : p)),
+    )
   }, [])
 
   const removeProspect = useCallback(
