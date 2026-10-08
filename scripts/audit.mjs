@@ -110,6 +110,20 @@ assert(leads[0].fit >= leads[leads.length - 1].fit, 'leads sorted by fit desc')
 const leads2 = generateLeads({ city: 'Cape Town', country: 'South Africa', industry: 'logistics', domain: 'supply chain', targetModel: 'b2b-saas', count: 10 })
 assert(JSON.stringify(leads) === JSON.stringify(leads2), 'finder is deterministic')
 assert(typeof leadsToCSV(leads) === 'string', 'leads export to CSV')
+// Every lead is anchored to the exact searched location (no foreign places)
+assert(leads.every((l) => l.location === 'Cape Town, South Africa'), 'all leads show the searched location')
+assert(leads.every((l) => l.country === 'South Africa' && l.city === 'Cape Town'), 'lead city/country match the search')
+assert(leads.every((l) => l.website.endsWith('.co.za')), 'website TLD reflects the searched country')
+// Names must not contain geographic words that read as other locations
+const BANNED_GEO = ['harbor', 'cedar', 'north', 'summit', 'meridian', 'atlas']
+assert(leads.every((l) => !BANNED_GEO.some((g) => l.name.toLowerCase().includes(g))), 'company names are not geographic')
+// Country-only and city-only searches still label correctly
+const coOnly = generateLeads({ country: 'Kenya', targetModel: 'agency', count: 4 })
+assert(coOnly.every((l) => l.location === 'Kenya' && l.website.endsWith('.co.ke')), 'country-only search labels + TLD correct')
+const cityOnly = generateLeads({ city: 'Austin', targetModel: 'b2b-saas', count: 4 })
+assert(cityOnly.every((l) => l.location === 'Austin'), 'city-only search labels correct')
+const neither = generateLeads({ targetModel: 'b2b-saas', count: 3 })
+assert(neither.every((l) => l.location === 'Your region'), 'no-location search falls back to Your region')
 const msg = generateOutreach({ prospect: leads[0], blueprint: bpg })
 assert(msg.email && msg.dm && msg.followUp, 'outreach generates all variants')
 

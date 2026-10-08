@@ -125,6 +125,23 @@ export default function Finder() {
 
       {searched && leads.length > 0 && (
         <>
+          {/* Location banner */}
+          <div className="glass flex flex-col gap-2 border-emerald-400/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500/25 to-violet-500/25 text-emerald-300">
+                <MapPin className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-100">
+                  {leads.length} prospects in {leads[0].location}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Example targets matching your industry &amp; model in this location — a starting list to research and contact, not a live directory.
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Summary + filters */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">

@@ -32,14 +32,48 @@ const capitalize = (s = '') =>
     .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
     .join(' ')
 
+// Neutral, brandable name parts — deliberately NOT geographic (no Harbor,
+// Cedar, North, Atlas, etc.) so a generated company never reads as being in
+// some other place than the one the user searched.
 const PREFIXES = [
-  'North', 'Summit', 'Vertex', 'Apex', 'Harbor', 'Meridian', 'Cedar', 'Blue',
-  'Iron', 'Bright', 'Pioneer', 'Keystone', 'Union', 'Clarity', 'Nova', 'Atlas',
+  'Lumen', 'Vanta', 'Zenith', 'Pulse', 'Cobalt', 'Onyx', 'Quanta', 'Juno',
+  'Ardent', 'Nimbus', 'Beacon', 'Forge', 'Axis', 'Nova', 'Vireo', 'Kinetic',
 ]
 const ROOTS = [
   'Labs', 'Group', 'Partners', 'Works', 'Collective', 'Systems', 'Ventures',
   'Industries', 'Solutions', 'Co', 'Digital', 'Studio', 'Holdings', 'Dynamics',
 ]
+
+// Map a country to a sensible web TLD so the generated site reinforces the
+// searched location instead of defaulting to a US-looking .com.
+const COUNTRY_TLDS = {
+  'south africa': 'co.za',
+  'united kingdom': 'co.uk',
+  uk: 'co.uk',
+  england: 'co.uk',
+  australia: 'com.au',
+  'new zealand': 'co.nz',
+  canada: 'ca',
+  india: 'in',
+  nigeria: 'com.ng',
+  kenya: 'co.ke',
+  germany: 'de',
+  france: 'fr',
+  spain: 'es',
+  italy: 'it',
+  netherlands: 'nl',
+  ireland: 'ie',
+  singapore: 'sg',
+  'united arab emirates': 'ae',
+  uae: 'ae',
+  brazil: 'com.br',
+  mexico: 'mx',
+  japan: 'jp',
+  'united states': 'com',
+  usa: 'com',
+  us: 'com',
+}
+const tldFor = (country) => COUNTRY_TLDS[(country || '').trim().toLowerCase()] || 'com'
 
 // What kind of target each business model is realistically chasing
 const TARGET_SHAPE = {
@@ -111,9 +145,11 @@ export function generateLeads({ city = '', country = '', industry = '', domain =
     .filter(Boolean)
 
   const reasons = buildReason(domain, industry, shape)
-  const cityLabel = capitalize(city.trim()) || 'your region'
+  const cityLabel = capitalize(city.trim())
   const countryLabel = capitalize(country.trim())
-  const locationLabel = [cityLabel, countryLabel].filter(Boolean).join(', ')
+  // Every lead is anchored to the exact location the user searched.
+  const locationLabel = [cityLabel, countryLabel].filter(Boolean).join(', ') || 'Your region'
+  const tld = tldFor(country)
 
   const used = new Set()
   const leads = []
@@ -139,7 +175,9 @@ export function generateLeads({ city = '', country = '', industry = '', domain =
       id: `lead_${seed}_${i}`,
       name,
       sector,
-      location: locationLabel || 'Remote / unspecified',
+      city: cityLabel,
+      country: countryLabel,
+      location: locationLabel,
       size: `${size} employees`,
       buyerRole,
       signal,
@@ -147,7 +185,7 @@ export function generateLeads({ city = '', country = '', industry = '', domain =
       outreach,
       fit,
       priority: fit >= 85 ? PRIORITY[0] : fit >= 72 ? PRIORITY[1] : PRIORITY[2],
-      website: `www.${name.toLowerCase().replace(/\s+/g, '')}.com`,
+      website: `www.${name.toLowerCase().replace(/\s+/g, '')}.${tld}`,
     })
   }
 
