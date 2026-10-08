@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { burstConfetti } from '../utils/confetti.js'
 import {
   Target, Plus, Trash2, Check, CalendarClock, Users, DollarSign, Map, ShieldCheck, Hash, Trophy,
 } from 'lucide-react'
@@ -32,6 +33,27 @@ export default function Goals() {
   const goals = bp.goals || []
   const ctx = { bp, prospects }
   const summary = goalsSummary(goals, ctx)
+
+  // Celebrate when a goal newly hits 100%
+  const achievedRef = useRef(null)
+  useEffect(() => {
+    const nowAchieved = new Set(
+      goals.filter((g) => {
+        const c = computeGoal(g, ctx)
+        return c.done || c.pct >= 100
+      }).map((g) => g.id),
+    )
+    if (achievedRef.current !== null) {
+      for (const id of nowAchieved) {
+        if (!achievedRef.current.has(id)) {
+          burstConfetti()
+          break
+        }
+      }
+    }
+    achievedRef.current = nowAchieved
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(goals), prospects])
 
   const setGoals = (updater) =>
     updateActiveBlueprint((prev) => ({ ...prev, goals: typeof updater === 'function' ? updater(prev.goals || []) : updater }))

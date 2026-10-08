@@ -4,7 +4,8 @@ import {
   Rocket, Zap, AlertTriangle, Lightbulb, Gem, ArrowRight, Swords, Printer, Share2, Crosshair, Wand2, Copy,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
-import { Card, Badge, Button, ScoreRing, EmptyState, Stat, Modal } from '../components/ui.jsx'
+import { Card, Badge, Button, ScoreRing, EmptyState, Stat, Modal, Tooltip } from '../components/ui.jsx'
+import { HelpCircle } from 'lucide-react'
 import { money } from '../engine/blueprintEngine.js'
 import { blueprintToMarkdown, downloadText, slugify, copyToClipboard } from '../engine/exporters.js'
 import { generateCompetitors } from '../engine/competitors.js'
@@ -19,7 +20,7 @@ const EXEC_TABS = [
 ]
 
 export default function Blueprint() {
-  const { activeBlueprint: bp, saveActive, setTab, notify, readOnly } = useApp()
+  const { activeBlueprint: bp, saveActive, setTab, notify, readOnly, printAs } = useApp()
   const [exec, setExec] = useState('summary')
   const [showPrompts, setShowPrompts] = useState(false)
 
@@ -43,7 +44,7 @@ export default function Blueprint() {
   }
   const printPdf = () => {
     notify('Opening print dialog — choose "Save as PDF"', 'info')
-    setTimeout(() => window.print(), 250)
+    printAs('blueprint')
   }
   const shareLink = async () => {
     const ok = await copyToClipboard(buildShareUrl(bp))
@@ -103,6 +104,9 @@ export default function Blueprint() {
           <div className="mb-3 flex items-center gap-2">
             <Gem className="h-5 w-5 text-violet-400" />
             <h2 className="font-semibold text-slate-100">Competitive Advantage (Moat)</h2>
+            <Tooltip text="A 'moat' is the durable advantage that makes you hard to copy or beat — here, built from your specific experience.">
+              <HelpCircle className="h-3.5 w-3.5" />
+            </Tooltip>
           </div>
           <p className="text-sm leading-relaxed text-slate-300">{bp.moat}</p>
         </Card>

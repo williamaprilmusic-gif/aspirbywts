@@ -6,7 +6,8 @@ import Toast from './components/Toast.jsx'
 import Tour from './components/Tour.jsx'
 import GuideBar from './components/GuideBar.jsx'
 import InstallNudge from './components/InstallNudge.jsx'
-import PrintReport from './components/PrintReport.jsx'
+import CommandPalette from './components/CommandPalette.jsx'
+import PrintArea from './components/PrintArea.jsx'
 import Dashboard from './modules/Dashboard.jsx'
 import Intake from './modules/Intake.jsx'
 import Blueprint from './modules/Blueprint.jsx'
@@ -58,9 +59,10 @@ export default function App() {
       </footer>
 
       {/* Hidden on screen; used for PDF / print export */}
-      <PrintReport bp={activeBlueprint} />
+      <PrintArea />
 
       <Tour />
+      <CommandPalette />
       <InstallNudge />
       <Toast />
     </div>

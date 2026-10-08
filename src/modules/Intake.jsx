@@ -27,10 +27,27 @@ export default function Intake() {
     notify(`${name} demo loaded`)
   }
 
+  // What's missing for a meaningful blueprint
+  const missing = []
+  if (!(intake.hardSkills || '').trim() && !(intake.domainExpertise || '').trim()) missing.push('your skills or domain expertise')
+  if (!(intake.passions || '').trim() && !(intake.exitGoal || '').trim()) missing.push('a passion or goal')
+
   const handleGenerate = () => {
+    if (missing.length) {
+      notify(`Add ${missing[0]} for a sharper blueprint`, 'info')
+      setStep(missing[0].includes('passion') || missing[0].includes('goal') ? 3 : 1)
+      return
+    }
     generate()
     setTab('blueprint')
     notify('Blueprint synthesized')
+  }
+
+  const handleReset = () => {
+    if (confirm('Clear all intake fields? This cannot be undone.')) {
+      resetIntake()
+      setStep(1)
+    }
   }
 
   const progress = (step / STEPS.length) * 100
@@ -143,7 +160,12 @@ export default function Intake() {
           <div className="grid gap-5">
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Working capital" className="sm:col-span-2">
-                <TextInput type="number" min={0} value={intake.capital} onChange={setNum('capital')} placeholder="5000" />
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
+                    {(CURRENCIES[intake.currency] || CURRENCIES.USD).symbol}
+                  </span>
+                  <TextInput type="number" min={0} value={intake.capital} onChange={setNum('capital')} placeholder="5000" className="pl-8" />
+                </div>
               </Field>
               <Field label="Currency">
                 <Select
@@ -274,7 +296,7 @@ export default function Intake() {
           <Button variant="subtle" icon={ChevronLeft} disabled={step === 1} onClick={() => setStep((s) => Math.max(1, s - 1))}>
             Back
           </Button>
-          <Button variant="subtle" icon={RotateCcw} onClick={resetIntake}>
+          <Button variant="subtle" icon={RotateCcw} onClick={handleReset}>
             Reset
           </Button>
         </div>

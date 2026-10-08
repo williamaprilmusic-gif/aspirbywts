@@ -7,6 +7,7 @@ import { Card, Badge, Button, EmptyState, Modal } from '../components/ui.jsx'
 import { money } from '../engine/blueprintEngine.js'
 import { blueprintToMarkdown, downloadText, downloadJSON, slugify } from '../engine/exporters.js'
 import { parseBackup, backupSummary } from '../engine/backup.js'
+import { timeAgo } from '../utils/format.js'
 
 export default function Saved() {
   const {
@@ -102,7 +103,9 @@ export default function Saved() {
                     </div>
                   </div>
                   <div className="text-right text-xs text-slate-500">
-                    <div className="flex items-center justify-end gap-1"><Clock className="h-3 w-3" />{new Date(bp.createdAt).toLocaleDateString()}</div>
+                    <div className="flex items-center justify-end gap-1" title={new Date(bp.updatedAt || bp.createdAt).toLocaleString()}>
+                      <Clock className="h-3 w-3" />{timeAgo(bp.updatedAt || bp.createdAt)}
+                    </div>
                   </div>
                 </div>
 

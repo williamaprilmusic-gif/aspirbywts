@@ -24,6 +24,7 @@ import { attentionItems, getBudget } from '../src/engine/execution.js'
 import { GOAL_KIND_LIST, defaultGoal, computeGoal, goalsSummary } from '../src/engine/goals.js'
 import { getStartedSteps, nextStep } from '../src/engine/guide.js'
 import { generatePromptPack, promptPackToMarkdown } from '../src/engine/prompts.js'
+import { withCommas, timeAgo } from '../src/utils/format.js'
 import { blueprintToMarkdown } from '../src/engine/exporters.js'
 import { TECH_FOUNDER_DEMO, CONSULTANT_DEMO, EMPTY_INTAKE } from '../src/engine/presets.js'
 
@@ -262,6 +263,15 @@ assert(pack.length >= 5, 'prompt pack has multiple prompts')
 assert(pack.every((p) => p.id && p.title && p.prompt && p.prompt.length > 50), 'each prompt is well-formed')
 assert(pack.every((p) => p.prompt.includes(packBp.concept.productName)), 'prompts are personalized with the product name')
 assert(typeof promptPackToMarkdown(packBp) === 'string' && promptPackToMarkdown(packBp).includes('Prompt Pack'), 'prompt pack exports markdown')
+
+// --- 16. Format utilities -------------------------------------------------
+assert(withCommas(1234567) === '1,234,567', 'withCommas adds thousands separators')
+assert(withCommas(0) === '0', 'withCommas handles zero')
+assert(timeAgo(new Date().toISOString()) === 'just now', 'timeAgo: now → just now')
+assert(timeAgo(new Date(Date.now() - 2 * 60 * 1000).toISOString()) === '2m ago', 'timeAgo: minutes')
+assert(timeAgo(new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()) === '3h ago', 'timeAgo: hours')
+assert(timeAgo(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()) === '5d ago', 'timeAgo: days')
+assert(timeAgo('') === '' && timeAgo('nope') === '', 'timeAgo: blank/invalid → empty')
 
 // --- summary --------------------------------------------------------------
 console.log(`\n${checks} checks run.`)

@@ -33,9 +33,9 @@ export default function Financials() {
 
       {/* KPI strip */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="CAC" value={m(eco.cac)} icon={Megaphone} color="amber" sub="Customer acquisition" />
-        <Stat label="LTV" value={m(eco.ltv)} icon={TrendingUp} color="emerald" sub="Lifetime value" />
-        <Stat label="LTV : CAC" value={`${eco.ltvCacRatio}:1`} icon={Zap} color={ratioHealthy ? 'emerald' : 'rose'} sub={ratioHealthy ? 'Healthy (≥3)' : 'Needs work'} />
+        <Stat label="CAC" value={m(eco.cac)} icon={Megaphone} color="amber" sub="Customer acquisition" info="Customer Acquisition Cost — the average spend to win one paying customer." />
+        <Stat label="LTV" value={m(eco.ltv)} icon={TrendingUp} color="emerald" sub="Lifetime value" info="Lifetime Value — the total gross-margin profit an average customer brings over their lifetime." />
+        <Stat label="LTV : CAC" value={`${eco.ltvCacRatio}:1`} icon={Zap} color={ratioHealthy ? 'emerald' : 'rose'} sub={ratioHealthy ? 'Healthy (≥3)' : 'Needs work'} info="How many times each customer pays back what it cost to acquire them. Aim for 3:1 or higher." />
         <Stat label="Break-even" value={`Month ${eco.breakeven}`} icon={Clock} color="violet" sub="Projected" />
         <Stat label="Gross margin" value={`${Math.round(eco.grossMargin * 100)}%`} icon={Percent} color="emerald" />
         <Stat label="Monthly churn" value={eco.churnMonthly > 0 ? `${(eco.churnMonthly * 100).toFixed(1)}%` : 'n/a'} icon={Target} color="amber" />

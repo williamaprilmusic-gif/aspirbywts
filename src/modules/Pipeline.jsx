@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  Workflow, Building2, MapPin, User, Trash2, Mail, Copy, Download, Filter,
+  Workflow, Building2, MapPin, User, Trash2, Mail, Copy, Download, Filter, Printer,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, EmptyState, Modal, Select } from '../components/ui.jsx'
@@ -8,6 +8,7 @@ import { generateOutreach } from '../engine/outreach.js'
 import { leadsToCSV } from '../engine/leadFinder.js'
 import { downloadText, copyToClipboard } from '../engine/exporters.js'
 import { pipelineFunnel } from '../engine/insights.js'
+import { timeAgo } from '../utils/format.js'
 
 const STATUS_COLOR = {
   Saved: 'slate',
@@ -19,7 +20,7 @@ const STATUS_COLOR = {
 const STATUSES = ['Saved', 'Contacted', 'Replied', 'Won', 'Lost']
 
 export default function Pipeline() {
-  const { prospects, updateProspect, removeProspect, savedBlueprints, activeBlueprint, setTab, notify } = useApp()
+  const { prospects, updateProspect, removeProspect, savedBlueprints, activeBlueprint, setTab, notify, printAs } = useApp()
   const [outreach, setOutreach] = useState(null)
   const [filter, setFilter] = useState('All')
 
@@ -52,7 +53,10 @@ export default function Pipeline() {
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-100 sm:text-3xl">Prospect Pipeline</h1>
           <p className="mt-1 text-sm text-slate-400">{funnel.total} prospects · {won} won · {conversion}% conversion</p>
         </div>
-        <Button variant="ghost" icon={Download} onClick={exportCsv}>Export CSV</Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" icon={Printer} onClick={() => printAs('pipeline')}>Print</Button>
+          <Button variant="ghost" icon={Download} onClick={exportCsv}>Export CSV</Button>
+        </div>
       </div>
 
       {/* Funnel */}
@@ -94,6 +98,7 @@ export default function Pipeline() {
                     <span className="flex items-center gap-1"><User className="h-3 w-3" />{p.buyerRole}</span>
                     {p.productName && <span className="text-violet-300">{p.productName}</span>}
                     <span className="text-emerald-300">{p.fit}% fit</span>
+                    {(p.updatedAt || p.savedAt) && <span title={new Date(p.updatedAt || p.savedAt).toLocaleString()}>· {timeAgo(p.updatedAt || p.savedAt)}</span>}
                   </div>
                 </div>
               </div>

@@ -1,4 +1,6 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { HelpCircle } from 'lucide-react'
+import { prefersReducedMotion } from '../utils/format.js'
 
 export function Card({ className = '', strong = false, children, glow = false }) {
   return (
@@ -109,7 +111,7 @@ export function Select({ options = [], ...props }) {
   )
 }
 
-export function Stat({ label, value, sub, color = 'emerald', icon: Icon }) {
+export function Stat({ label, value, sub, color = 'emerald', icon: Icon, info }) {
   const ring = {
     emerald: 'from-emerald-500/20 text-emerald-300',
     violet: 'from-violet-500/20 text-violet-300',
@@ -125,7 +127,14 @@ export function Stat({ label, value, sub, color = 'emerald', icon: Icon }) {
           </div>
         )}
         <div>
-          <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
+          <div className="flex items-center gap-1 text-xs uppercase tracking-wide text-slate-400">
+            {label}
+            {info && (
+              <Tooltip text={info}>
+                <HelpCircle className="h-3 w-3" />
+              </Tooltip>
+            )}
+          </div>
           <div className="text-xl font-bold text-slate-100">{value}</div>
           {sub && <div className="text-xs text-slate-500">{sub}</div>}
         </div>
@@ -167,12 +176,65 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' })
   )
 }
 
-// Circular score gauge
+// Animated count-up hook (respects reduced-motion)
+export function useCountUp(target = 0, duration = 900) {
+  const [val, setVal] = useState(() => (prefersReducedMotion() ? target : 0))
+  const raf = useRef(null)
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setVal(target)
+      return
+    }
+    const start = performance.now()
+    const from = 0
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setVal(Math.round(from + (target - from) * eased))
+      if (t < 1) raf.current = requestAnimationFrame(tick)
+    }
+    raf.current = requestAnimationFrame(tick)
+    return () => raf.current && cancelAnimationFrame(raf.current)
+  }, [target, duration])
+  return val
+}
+
+// Lightweight tooltip — hover on desktop, tap on touch
+export function Tooltip({ text, children, className = '' }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span className={`relative inline-flex ${className}`}>
+      <button
+        type="button"
+        aria-label={text}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onClick={(e) => {
+          e.preventDefault()
+          setOpen((v) => !v)
+        }}
+        className="inline-flex cursor-help items-center text-slate-500 hover:text-slate-300 focus:outline-none"
+      >
+        {children}
+      </button>
+      {open && (
+        <span className="absolute bottom-full left-1/2 z-50 mb-1.5 w-52 -translate-x-1/2 rounded-lg border border-white/10 bg-slate-900/95 px-2.5 py-1.5 text-xs font-normal leading-snug text-slate-300 shadow-glow backdrop-blur-xl">
+          {text}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// Circular score gauge (animated count-up)
 export function ScoreRing({ score = 0, size = 132 }) {
   const stroke = 11
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
-  const offset = c - (score / 100) * c
+  const shown = useCountUp(score)
+  const offset = c - (shown / 100) * c
   const color = score >= 75 ? '#10b981' : score >= 55 ? '#8b5cf6' : '#f59e0b'
   return (
     <div
@@ -197,7 +259,7 @@ export function ScoreRing({ score = 0, size = 132 }) {
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-extrabold text-slate-100">{score}%</span>
+        <span className="text-3xl font-extrabold text-slate-100">{shown}%</span>
         <span className="text-[10px] uppercase tracking-widest text-slate-400">Fit</span>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  Stethoscope, Lightbulb, TrendingUp, TrendingDown, Download, Save, RotateCcw, CheckCircle2, AlertTriangle, History, ListPlus, Check,
+  Stethoscope, Lightbulb, TrendingUp, TrendingDown, Download, Save, RotateCcw, CheckCircle2, AlertTriangle, History, ListPlus, Check, Printer,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, ProgressBar, ScoreRing } from '../components/ui.jsx'
@@ -13,7 +13,7 @@ const SEV_COLOR = { High: 'rose', Medium: 'amber' }
 const RATING_LABELS = ['', 'Poor', 'Weak', 'Okay', 'Good', 'Excellent']
 
 export default function Evaluate() {
-  const { evaluation, setEvalAnswer, resetEvaluation, evalSnapshots, saveEvalSnapshot, activeBlueprint, addTask, setTab, notify } = useApp()
+  const { evaluation, setEvalAnswer, resetEvaluation, evalSnapshots, saveEvalSnapshot, activeBlueprint, addTask, setTab, notify, printAs } = useApp()
   const [added, setAdded] = useState({})
 
   const res = scoreEvaluation(evaluation)
@@ -53,8 +53,9 @@ export default function Evaluate() {
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" icon={Save} onClick={() => saveEvalSnapshot(res.overall)}>Save snapshot</Button>
+          <Button variant="ghost" icon={Printer} onClick={() => printAs('evaluation')}>Print</Button>
           <Button variant="ghost" icon={Download} onClick={exportMd}>Export</Button>
-          <Button variant="subtle" icon={RotateCcw} onClick={resetEvaluation}>Reset</Button>
+          <Button variant="subtle" icon={RotateCcw} onClick={() => { if (confirm('Reset all evaluation ratings?')) resetEvaluation() }}>Reset</Button>
         </div>
       </div>
 

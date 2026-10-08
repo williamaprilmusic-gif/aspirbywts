@@ -101,19 +101,19 @@ export function AppProvider({ children }) {
   const resetIntake = useCallback(() => setIntake({ ...EMPTY_INTAKE }), [])
 
   const generate = useCallback(() => {
-    const bp = generateBlueprint(intake)
+    const now = new Date().toISOString()
+    const bp = { ...generateBlueprint(intake), updatedAt: now }
     setActiveBlueprint(bp)
     return bp
   }, [intake])
 
   const saveActive = useCallback(() => {
     if (!activeBlueprint) return
+    const stamped = { ...activeBlueprint, updatedAt: new Date().toISOString() }
+    setActiveBlueprint(stamped)
     setSavedBlueprints((prev) => {
-      const exists = prev.some((b) => b.id === activeBlueprint.id)
-      const next = exists
-        ? prev.map((b) => (b.id === activeBlueprint.id ? activeBlueprint : b))
-        : [activeBlueprint, ...prev]
-      return next
+      const exists = prev.some((b) => b.id === stamped.id)
+      return exists ? prev.map((b) => (b.id === stamped.id ? stamped : b)) : [stamped, ...prev]
     })
     notify('Enterprise saved')
   }, [activeBlueprint, notify])
@@ -140,7 +140,8 @@ export function AppProvider({ children }) {
   const updateActiveBlueprint = useCallback((patch) => {
     setActiveBlueprint((prev) => {
       if (!prev) return prev
-      const next = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch }
+      const base = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch }
+      const next = { ...base, updatedAt: new Date().toISOString() }
       setSavedBlueprints((list) => list.map((b) => (b.id === next.id ? next : b)))
       return next
     })
@@ -248,6 +249,20 @@ export function AppProvider({ children }) {
   const hideGuide = useCallback(() => setGuideHidden(true), [])
   const showGuide = useCallback(() => setGuideHidden(false), [])
 
+  // ---- Printing (blueprint / pipeline / evaluation) ----
+  const [printTarget, setPrintTarget] = useState('blueprint')
+  const printAs = useCallback((target) => {
+    setPrintTarget(target)
+    setTimeout(() => {
+      try {
+        window.print()
+      } catch {
+        /* ignore */
+      }
+    }, 80)
+    setTimeout(() => setPrintTarget('blueprint'), 1200)
+  }, [])
+
   // ---- Workspace backup / restore ----
   const exportWorkspace = useCallback(
     () => buildBackup({ savedBlueprints, prospects, evaluation, evalSnapshots }),
@@ -338,6 +353,8 @@ export function AppProvider({ children }) {
       guideHidden,
       hideGuide,
       showGuide,
+      printTarget,
+      printAs,
     }),
     [
       intake,
@@ -377,6 +394,8 @@ export function AppProvider({ children }) {
       guideHidden,
       hideGuide,
       showGuide,
+      printTarget,
+      printAs,
     ],
   )
 

@@ -50,7 +50,9 @@ export default function Planner() {
       return { ...prev, budget: { ...base, monthlyBurn: Math.max(0, Number(v) || 0) } }
     })
   }
-  const resetBudget = () => updateActiveBlueprint((prev) => ({ ...prev, budget: defaultBudget(prev) }))
+  const resetBudget = () => {
+    if (confirm('Reset the capital allocation to defaults?')) updateActiveBlueprint((prev) => ({ ...prev, budget: defaultBudget(prev) }))
+  }
 
   const setValidation = (key, patch) => {
     if (readOnly) return
@@ -59,7 +61,10 @@ export default function Planner() {
       return { ...prev, validation: base.map((v) => (v.key === key ? { ...v, ...patch } : v)) }
     })
   }
-  const resetValidation = () => updateActiveBlueprint((prev) => ({ ...prev, validation: defaultValidation(prev) }))
+  const resetValidation = () => {
+    if (confirm('Reset the validation scorecard? Your evidence notes will be cleared.'))
+      updateActiveBlueprint((prev) => ({ ...prev, validation: defaultValidation(prev) }))
+  }
 
   const capital = budget.capital
 
