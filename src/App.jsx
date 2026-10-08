@@ -5,6 +5,7 @@ import Header from './components/Header.jsx'
 import Toast from './components/Toast.jsx'
 import Tour from './components/Tour.jsx'
 import GuideBar from './components/GuideBar.jsx'
+import InstallNudge from './components/InstallNudge.jsx'
 import PrintReport from './components/PrintReport.jsx'
 import Dashboard from './modules/Dashboard.jsx'
 import Intake from './modules/Intake.jsx'
@@ -60,6 +61,7 @@ export default function App() {
       <PrintReport bp={activeBlueprint} />
 
       <Tour />
+      <InstallNudge />
       <Toast />
     </div>
   )
