@@ -14,7 +14,7 @@ import { computeScenario, defaultScenario } from '../src/engine/scenario.js'
 import { readinessScore, nextActions, pipelineFunnel, roadmapStats } from '../src/engine/insights.js'
 import { generateLeads, leadsToCSV } from '../src/engine/leadFinder.js'
 import { generateOutreach } from '../src/engine/outreach.js'
-import { buildOverpassQuery, mapElements, companyLinks } from '../src/engine/liveFinder.js'
+import { buildOverpassQuery, mapElements, companyLinks, industryKeywords } from '../src/engine/liveFinder.js'
 import { generateCompetitors } from '../src/engine/competitors.js'
 import { encodeBlueprint, decodeBlueprint } from '../src/engine/share.js'
 import {
@@ -148,6 +148,21 @@ const cl = companyLinks(mapped[0], { city: 'Cape Town', country: 'South Africa' 
 assert(cl.website === 'https://capelog.co.za', 'company website used when present')
 const cl2 = companyLinks({ name: 'Table Mountain IT', lat: -33.8, lon: 18.5 }, { city: 'Cape Town', country: 'South Africa' })
 assert(cl2.website.startsWith('https://www.google.com/search?q=') && cl2.maps.includes('-33.8,18.5'), 'fallback website = search, maps uses coords')
+
+// industryKeywords strips generic stopwords + short tokens
+assert(industryKeywords('call centre').length === 1 && industryKeywords('call centre')[0] === 'call', 'generic word "centre" stripped from keywords')
+assert(industryKeywords('IT & Services').join(',') === 'it', 'stopwords + "&" split dropped, "it" kept')
+assert(industryKeywords('').length === 0, 'empty industry yields no keywords')
+// whole-word matching: "call" must NOT match "Shopping Centre"/mall via substring
+const mallTest = mapElements(
+  [
+    { tags: { name: 'Canal Walk Shopping Centre', shop: 'mall' }, lat: -33.8, lon: 18.5 },
+    { tags: { name: 'Cape Call Experts', office: 'telecommunication' }, lat: -33.9, lon: 18.4 },
+  ],
+  { industry: 'call centre', location: 'Cape Town' },
+)
+assert(mallTest.find((c) => c.name === 'Canal Walk Shopping Centre').relevance === 0, 'mall does not match "call centre" by substring')
+assert(mallTest.find((c) => c.name === 'Cape Call Experts').relevance === 1, 'real call company matches "call centre"')
 
 // --- 8. Competitors -------------------------------------------------------
 const comp = generateCompetitors(bpg)
