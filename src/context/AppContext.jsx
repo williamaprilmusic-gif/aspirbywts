@@ -15,6 +15,7 @@ const LS_KEYS = {
   tour: 'aspir.tourSeen',
   evaluation: 'aspir.evaluation',
   evalSnapshots: 'aspir.evalSnapshots',
+  guideHidden: 'aspir.guideHidden',
 }
 
 function safeLoad(key, fallback) {
@@ -43,6 +44,7 @@ export function AppProvider({ children }) {
   const [tourSeen, setTourSeen] = useState(() => safeLoad(LS_KEYS.tour, false))
   const [evaluation, setEvaluation] = useState(() => safeLoad(LS_KEYS.evaluation, {}))
   const [evalSnapshots, setEvalSnapshots] = useState(() => safeLoad(LS_KEYS.evalSnapshots, []))
+  const [guideHidden, setGuideHidden] = useState(() => safeLoad(LS_KEYS.guideHidden, false))
   // Read-only shared blueprint (from URL hash #view=...)
   const [shared] = useState(() => {
     try {
@@ -70,6 +72,7 @@ export function AppProvider({ children }) {
   useEffect(() => safeSave(LS_KEYS.tour, tourSeen), [tourSeen])
   useEffect(() => safeSave(LS_KEYS.evaluation, evaluation), [evaluation])
   useEffect(() => safeSave(LS_KEYS.evalSnapshots, evalSnapshots), [evalSnapshots])
+  useEffect(() => safeSave(LS_KEYS.guideHidden, guideHidden), [guideHidden])
 
   // Theme class on <html>
   useEffect(() => {
@@ -238,6 +241,8 @@ export function AppProvider({ children }) {
 
   const markTourSeen = useCallback(() => setTourSeen(true), [])
   const restartTour = useCallback(() => setTourSeen(false), [])
+  const hideGuide = useCallback(() => setGuideHidden(true), [])
+  const showGuide = useCallback(() => setGuideHidden(false), [])
 
   // ---- Workspace backup / restore ----
   const exportWorkspace = useCallback(
@@ -326,6 +331,9 @@ export function AppProvider({ children }) {
       saveEvalSnapshot,
       exportWorkspace,
       importWorkspace,
+      guideHidden,
+      hideGuide,
+      showGuide,
     }),
     [
       intake,
@@ -362,6 +370,9 @@ export function AppProvider({ children }) {
       saveEvalSnapshot,
       exportWorkspace,
       importWorkspace,
+      guideHidden,
+      hideGuide,
+      showGuide,
     ],
   )
 

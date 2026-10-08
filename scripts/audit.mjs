@@ -22,6 +22,7 @@ import {
 import { buildBackup, parseBackup, mergeBy } from '../src/engine/backup.js'
 import { attentionItems, getBudget } from '../src/engine/execution.js'
 import { GOAL_KIND_LIST, defaultGoal, computeGoal, goalsSummary } from '../src/engine/goals.js'
+import { getStartedSteps, nextStep } from '../src/engine/guide.js'
 import { blueprintToMarkdown } from '../src/engine/exporters.js'
 import { TECH_FOUNDER_DEMO, CONSULTANT_DEMO, EMPTY_INTAKE } from '../src/engine/presets.js'
 
@@ -201,6 +202,29 @@ const sum = goalsSummary([custGoal, revGoal], wonCtx)
 assert(sum.count === 2 && sum.avgPct >= 0 && sum.avgPct <= 100, 'goalsSummary well-formed')
 const bpWithOverdue = { ...goalBp, goals: [pastGoal] }
 assert(attentionItems(bpWithOverdue, { prospects: [], savedBlueprints: [bpWithOverdue] }).some((a) => a.kind === 'goal'), 'overdue goal surfaces in attention feed')
+
+// --- 14. Guided onboarding ------------------------------------------------
+const emptyGuide = nextStep({ activeBlueprint: null, savedBlueprints: [], prospects: [], evaluation: {} })
+assert(emptyGuide.current && emptyGuide.current.tab === 'intake', 'first step guides to intake')
+assert(emptyGuide.doneCount === 0 && emptyGuide.total === 6, 'guide has 6 steps, none done initially')
+assert(!emptyGuide.allDone, 'guide not complete when nothing done')
+const guideBp = generateBlueprint(TECH_FOUNDER_DEMO)
+const withBp = nextStep({ activeBlueprint: guideBp, savedBlueprints: [guideBp], prospects: [], evaluation: {} })
+assert(withBp.steps.find((s) => s.key === 'blueprint').done, 'blueprint step done once generated')
+assert(withBp.steps.find((s) => s.key === 'save').done, 'save step done when in saved list')
+assert(withBp.current.number >= 1 && withBp.current.number <= 6, 'current step number in range')
+// fully complete
+const doneBp = { ...guideBp, startDate: '2026-01-01', goals: [{ id: 'g' }] }
+const full = nextStep({
+  activeBlueprint: doneBp,
+  savedBlueprints: [doneBp],
+  prospects: [
+    { blueprintId: doneBp.id }, { blueprintId: doneBp.id }, { blueprintId: doneBp.id },
+  ],
+  evaluation: { 'product-1': 4 },
+})
+assert(full.allDone === true && full.current === null, 'guide completes when all steps satisfied')
+assert(getStartedSteps({ activeBlueprint: null }).every((s) => s.tab && s.cta && s.label), 'every step well-formed')
 
 // --- summary --------------------------------------------------------------
 console.log(`\n${checks} checks run.`)

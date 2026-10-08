@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   LayoutDashboard, Sparkles, CheckCircle2, Circle, Flame, ArrowRight, Rocket, Gauge, Target, Building2, TrendingUp,
-  Bell, ChevronRight,
+  Bell, ChevronRight, Inbox, BrainCircuit,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, ProgressBar, EmptyState, ScoreRing } from '../components/ui.jsx'
@@ -9,20 +9,56 @@ import { money } from '../engine/blueprintEngine.js'
 import { readinessScore, readinessBand, nextActions, topProspects, roadmapStats, pipelineFunnel } from '../engine/insights.js'
 import { attentionItems } from '../engine/execution.js'
 import { goalsSummary } from '../engine/goals.js'
+import { GettingStarted } from '../components/GuideBar.jsx'
 
 export default function Dashboard() {
   const { activeBlueprint: bp, prospects, savedBlueprints, setTab, toggleTask } = useApp()
 
   if (!bp) {
+    const steps = [
+      { icon: Inbox, title: 'Tell us about you', body: 'A short, guided intake — your skills, goals, and how much you can invest.' },
+      { icon: BrainCircuit, title: 'Get your blueprint', body: 'We build a full business plan: concept, pricing, go-to-market, and finances.' },
+      { icon: Rocket, title: 'Execute & grow', body: 'Work a 90-day plan, find clients by city, and track your progress.' },
+    ]
     return (
-      <EmptyState icon={LayoutDashboard} title="Welcome to Aspir by WTS" action={
-        <div className="mt-2 flex gap-2">
-          <Button icon={Rocket} onClick={() => setTab('intake')}>Start intake</Button>
+      <div className="mx-auto max-w-4xl animate-fade-up">
+        <div className="glass-strong relative overflow-hidden p-8 text-center sm:p-12">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 left-10 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
+          <div className="relative">
+            <div className="mx-auto mb-4 grid h-16 w-16 animate-float place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-violet-500 shadow-glow">
+              <Sparkles className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              <span className="text-slate-100">Welcome to </span><span className="text-gradient">Aspir</span>
+            </h1>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-slate-400">
+              Turn your experience into a complete, ready-to-run business — in three simple steps. No jargon, no guesswork.
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {steps.map((s, i) => {
+                const Icon = s.icon
+                return (
+                  <div key={i} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/20 text-xs font-bold text-emerald-300">{i + 1}</span>
+                      <Icon className="h-4 w-4 text-violet-300" />
+                    </div>
+                    <div className="text-sm font-semibold text-slate-100">{s.title}</div>
+                    <div className="mt-1 text-xs text-slate-400">{s.body}</div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button icon={Rocket} onClick={() => setTab('intake')}>Start — it takes 2 minutes</Button>
+              <span className="text-xs text-slate-500">or load a demo on the next screen to see it instantly</span>
+            </div>
+          </div>
         </div>
-      }>
-        This is your command center. Complete the intake and generate a blueprint, then come back here for your weekly
-        actions, pipeline snapshot, and founder-readiness score.
-      </EmptyState>
+      </div>
     )
   }
 
@@ -105,6 +141,9 @@ export default function Dashboard() {
           </div>
         )}
       </Card>
+
+      {/* Getting started checklist (auto-hides once complete) */}
+      <GettingStarted />
 
       {/* This week's moves + hot prospects */}
       <div className="grid gap-6 lg:grid-cols-2">

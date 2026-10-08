@@ -21,7 +21,7 @@ const NAV = [
 ]
 
 export default function Header() {
-  const { tab, setTab, theme, setTheme, activeBlueprint, savedBlueprints, prospects, restartTour, readOnly } = useApp()
+  const { tab, setTab, theme, setTheme, activeBlueprint, savedBlueprints, prospects, restartTour, showGuide, readOnly } = useApp()
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
@@ -84,10 +84,10 @@ export default function Header() {
             )}
             {!readOnly && (
               <button
-                onClick={restartTour}
+                onClick={() => { restartTour(); showGuide() }}
                 className="hidden h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 sm:grid"
-                title="Replay tour"
-                aria-label="Replay the onboarding tour"
+                title="Help & tour"
+                aria-label="Replay the onboarding tour and show the guide"
               >
                 <HelpCircle className="h-4 w-4" />
               </button>
