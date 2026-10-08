@@ -41,7 +41,7 @@ export default function Header() {
           </button>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-0.5 xl:flex">
+          <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Primary">
             {NAV.map((n) => {
               const Icon = n.icon
               const active = tab === n.id
@@ -50,6 +50,7 @@ export default function Header() {
                 <button
                   key={n.id}
                   onClick={() => setTab(n.id)}
+                  aria-current={active ? 'page' : undefined}
                   className={`relative flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-medium transition ${
                     active
                       ? 'bg-gradient-to-r from-emerald-500/20 to-violet-500/20 text-white shadow-glow'
@@ -85,6 +86,7 @@ export default function Header() {
                 onClick={restartTour}
                 className="hidden h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 sm:grid"
                 title="Replay tour"
+                aria-label="Replay the onboarding tour"
               >
                 <HelpCircle className="h-4 w-4" />
               </button>
@@ -93,6 +95,7 @@ export default function Header() {
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10"
               title="Toggle theme"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
@@ -100,7 +103,7 @@ export default function Header() {
         </div>
 
         {/* Mobile / tablet nav */}
-        <nav className="flex gap-1 overflow-x-auto pb-2 xl:hidden">
+        <nav className="flex gap-1 overflow-x-auto pb-2 xl:hidden" aria-label="Primary mobile">
           {NAV.map((n) => {
             const Icon = n.icon
             const active = tab === n.id
@@ -108,6 +111,7 @@ export default function Header() {
               <button
                 key={n.id}
                 onClick={() => setTab(n.id)}
+                aria-current={active ? 'page' : undefined}
                 className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   active ? 'bg-gradient-to-r from-emerald-500/20 to-violet-500/20 text-white' : 'text-slate-400'
                 }`}

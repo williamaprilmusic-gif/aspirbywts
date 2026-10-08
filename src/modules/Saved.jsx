@@ -118,6 +118,7 @@ export default function Saved() {
                   <Button
                     variant="subtle"
                     icon={Download}
+                    aria-label={`Export ${bp.concept.productName} as Markdown`}
                     onClick={() => {
                       downloadText(`${slugify(bp.concept.productName)}-blueprint.md`, blueprintToMarkdown(bp))
                       notify('Exported')
@@ -127,6 +128,7 @@ export default function Saved() {
                     <Button
                       variant="danger"
                       icon={Trash2}
+                      aria-label={`Delete ${bp.concept.productName}`}
                       onClick={() => {
                         if (confirm(`Delete "${bp.concept.productName}"? This cannot be undone.`)) deleteBlueprint(bp.id)
                       }}

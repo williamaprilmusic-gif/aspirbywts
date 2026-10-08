@@ -8,11 +8,11 @@ export default function Toast() {
   const Icon = toast.kind === 'info' ? Info : CheckCircle2
   const color = toast.kind === 'info' ? 'text-violet-300' : 'text-emerald-300'
   return (
-    <div className="no-print fixed bottom-5 left-1/2 z-50 -translate-x-1/2 animate-fade-up">
+    <div className="no-print fixed bottom-5 left-1/2 z-50 -translate-x-1/2 animate-fade-up" role="status" aria-live="polite">
       <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900/90 px-4 py-3 shadow-glow backdrop-blur-xl">
-        <Icon className={`h-5 w-5 ${color}`} />
+        <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
         <span className="text-sm font-medium text-slate-100">{toast.message}</span>
-        <button onClick={dismissToast} className="text-slate-500 hover:text-slate-300">
+        <button onClick={dismissToast} aria-label="Dismiss notification" className="text-slate-500 hover:text-slate-300">
           <X className="h-4 w-4" />
         </button>
       </div>

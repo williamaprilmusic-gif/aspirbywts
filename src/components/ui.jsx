@@ -47,10 +47,17 @@ export function Button({ children, variant = 'primary', className = '', icon: Ic
   )
 }
 
-export function ProgressBar({ value, max = 100, className = '', gradient = true }) {
+export function ProgressBar({ value, max = 100, className = '', gradient = true, label }) {
   const pct = Math.min(100, Math.round((value / max) * 100)) || 0
   return (
-    <div className={`h-2.5 w-full overflow-hidden rounded-full bg-white/10 ${className}`}>
+    <div
+      className={`h-2.5 w-full overflow-hidden rounded-full bg-white/10 ${className}`}
+      role="progressbar"
+      aria-valuenow={pct}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={label}
+    >
       <div
         className={`h-full rounded-full transition-all duration-500 ${
           gradient ? 'bg-gradient-to-r from-emerald-400 to-violet-400' : 'bg-emerald-400'
@@ -144,8 +151,8 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' })
       <div className={`glass-strong relative w-full ${maxWidth} max-h-[85vh] overflow-y-auto animate-fade-up p-5 sm:p-6`}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-slate-200">
-            <span className="text-xl leading-none">×</span>
+          <button onClick={onClose} aria-label="Close dialog" className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-slate-200">
+            <span className="text-xl leading-none" aria-hidden="true">×</span>
           </button>
         </div>
         {children}
@@ -162,8 +169,13 @@ export function ScoreRing({ score = 0, size = 132 }) {
   const offset = c - (score / 100) * c
   const color = score >= 75 ? '#10b981' : score >= 55 ? '#8b5cf6' : '#f59e0b'
   return (
-    <div className="relative grid place-items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <div
+      className="relative grid place-items-center"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`Score ${score} percent`}
+    >
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}

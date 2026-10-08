@@ -122,7 +122,7 @@ export default function Roadmap() {
                     key={t.id}
                     className="group flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2.5 transition hover:border-white/15"
                   >
-                    <button onClick={() => !readOnly && toggleTask(phase.id, t.id)} disabled={readOnly} className="shrink-0 text-emerald-400 disabled:opacity-60">
+                    <button onClick={() => !readOnly && toggleTask(phase.id, t.id)} disabled={readOnly} aria-pressed={t.done} aria-label={`${t.done ? 'Mark incomplete' : 'Mark complete'}: ${t.text}`} className="shrink-0 text-emerald-400 disabled:opacity-60">
                       {t.done ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5 text-slate-500" />}
                     </button>
                     <span className={`flex-1 text-sm ${t.done ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
@@ -132,8 +132,9 @@ export default function Roadmap() {
                     {!readOnly && (
                       <button
                         onClick={() => removeTask(phase.id, t.id)}
-                        className="shrink-0 text-slate-600 opacity-0 transition hover:text-rose-400 group-hover:opacity-100"
+                        className="shrink-0 text-slate-600 opacity-0 transition hover:text-rose-400 group-hover:opacity-100 focus-visible:opacity-100"
                         title="Remove task"
+                        aria-label={`Remove task: ${t.text}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

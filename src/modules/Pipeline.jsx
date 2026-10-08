@@ -105,10 +105,11 @@ export default function Pipeline() {
                     onChange={(e) => updateProspect(p.key, { status: e.target.value })}
                     options={STATUSES.map((s) => ({ value: s, label: s }))}
                     className="!py-1.5 pr-8 text-xs"
+                    aria-label={`Status for ${p.name}`}
                   />
                 </div>
-                <Button variant="ghost" icon={Mail} onClick={() => setOutreach(p)} />
-                <Button variant="danger" icon={Trash2} onClick={() => removeProspect(p.key)} />
+                <Button variant="ghost" icon={Mail} aria-label={`Outreach for ${p.name}`} onClick={() => setOutreach(p)} />
+                <Button variant="danger" icon={Trash2} aria-label={`Remove ${p.name}`} onClick={() => removeProspect(p.key)} />
               </div>
             </div>
 

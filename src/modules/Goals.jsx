@@ -122,7 +122,7 @@ export default function Goals() {
                     </div>
                   </div>
                   {!readOnly && (
-                    <button onClick={() => removeGoal(g.id)} className="shrink-0 text-slate-600 transition hover:text-rose-400" title="Remove goal">
+                    <button onClick={() => removeGoal(g.id)} className="shrink-0 text-slate-600 transition hover:text-rose-400" title="Remove goal" aria-label={`Remove goal: ${g.label || meta.label}`}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
