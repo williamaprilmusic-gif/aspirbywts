@@ -7,7 +7,11 @@
 // ============================================================================
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
-const OVERPASS = 'https://overpass-api.de/api/interpreter'
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+]
 
 export function buildOverpassQuery(lat, lon, radius = 12000) {
   const r = Math.round(radius)
@@ -90,7 +94,7 @@ async function fetchJSON(url, opts, ms = 20000) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), ms)
   try {
-    const res = await fetch(url, { ...opts, signal: ctrl.signal })
+    const res = await fetch(url, { cache: 'no-store', ...opts, signal: ctrl.signal })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return await res.json()
   } finally {
@@ -102,20 +106,38 @@ export async function geocode(city, country) {
   const q = [city, country].filter(Boolean).join(', ')
   if (!q) throw new Error('No location')
   const url = `${NOMINATIM}?q=${encodeURIComponent(q)}&format=json&limit=1&addressdetails=0`
-  const data = await fetchJSON(url, { headers: { Accept: 'application/json' } }, 15000)
-  if (!Array.isArray(data) || !data.length) throw new Error('Location not found')
+  let data
+  try {
+    data = await fetchJSON(url, { headers: { Accept: 'application/json' } }, 15000)
+  } catch (e) {
+    throw new Error(`Could not reach the map service (${e.message})`)
+  }
+  if (!Array.isArray(data) || !data.length) throw new Error(`Couldn't find "${q}" — check the spelling`)
   return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), label: data[0].display_name }
+}
+
+// Query several Overpass mirrors until one answers.
+async function overpass(query) {
+  let lastErr
+  for (const url of OVERPASS_MIRRORS) {
+    try {
+      return await fetchJSON(
+        url,
+        { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `data=${encodeURIComponent(query)}` },
+        25000,
+      )
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  throw new Error(`Company directory is busy right now (${lastErr ? lastErr.message : 'no response'})`)
 }
 
 // Main entry: returns { location, lat, lon, companies: [...] } or throws.
 export async function findRealCompanies({ city = '', country = '', industry = '', limit = 24 } = {}) {
   const geo = await geocode(city, country)
   const query = buildOverpassQuery(geo.lat, geo.lon, 14000)
-  const data = await fetchJSON(OVERPASS, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: query,
-  }, 25000)
+  const data = await overpass(query)
   const location = [city, country].filter(Boolean).join(', ')
   const companies = mapElements(data.elements || [], { industry, location }).slice(0, limit)
   return { location, lat: geo.lat, lon: geo.lon, companies }
