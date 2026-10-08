@@ -102,30 +102,30 @@ assert(Array.isArray(nextActions(bpg, 3)), 'nextActions returns array')
 assert(pipelineFunnel([], bpg.id).total === 0, 'empty funnel totals 0')
 assert(roadmapStats(bpg).pct >= 0, 'roadmap stats computed')
 
-// --- 7. Lead finder + outreach -------------------------------------------
-const leads = generateLeads({ city: 'Cape Town', country: 'South Africa', industry: 'logistics', domain: 'supply chain', targetModel: 'b2b-saas', count: 10 })
-assert(leads.length === 10, 'finder returns requested count')
-assert(leads.every((l) => l.fit >= 0 && l.fit <= 100), 'lead fit scores in range')
-assert(leads[0].fit >= leads[leads.length - 1].fit, 'leads sorted by fit desc')
+// --- 7. Lead finder (real-search launchpad) + outreach -------------------
+const res = generateLeads({ city: 'Cape Town', country: 'South Africa', industry: 'logistics', domain: 'supply chain', targetModel: 'b2b-saas', count: 10 })
+assert(Array.isArray(res.targets) && res.targets.length > 0 && res.targets.length <= 10, 'finder returns a bounded list of target segments')
+assert(res.location === 'Cape Town, South Africa', 'result carries the searched location')
+assert(res.targets.every((t) => t.location === 'Cape Town, South Africa'), 'every target shows the searched location')
+assert(res.targets.every((t) => t.fit >= 0 && t.fit <= 100), 'relevance scores in range')
+assert(res.targets[0].fit >= res.targets[res.targets.length - 1].fit, 'targets sorted by relevance desc')
+// Links are REAL, working search URLs anchored to the location
+const encCountry = encodeURIComponent('South Africa')
+const encCity = encodeURIComponent('Cape Town')
+assert(res.targets.every((t) => t.links.google.startsWith('https://www.google.com/search?q=')), 'google links are real search URLs')
+assert(res.targets.every((t) => t.links.maps.startsWith('https://www.google.com/maps/search/')), 'maps links are real')
+assert(res.targets.every((t) => t.links.linkedin.startsWith('https://www.linkedin.com/search/results/companies/')), 'linkedin links are real')
+assert(res.targets.every((t) => t.links.google.includes(encCountry) || t.links.google.includes(encCity)), 'search links include the location')
+assert(res.broad && res.broad.google.includes('google.com') && res.broad.linkedin.includes('linkedin.com'), 'broad searches present + real')
 // determinism
-const leads2 = generateLeads({ city: 'Cape Town', country: 'South Africa', industry: 'logistics', domain: 'supply chain', targetModel: 'b2b-saas', count: 10 })
-assert(JSON.stringify(leads) === JSON.stringify(leads2), 'finder is deterministic')
-assert(typeof leadsToCSV(leads) === 'string', 'leads export to CSV')
-// Every lead is anchored to the exact searched location (no foreign places)
-assert(leads.every((l) => l.location === 'Cape Town, South Africa'), 'all leads show the searched location')
-assert(leads.every((l) => l.country === 'South Africa' && l.city === 'Cape Town'), 'lead city/country match the search')
-assert(leads.every((l) => l.website.endsWith('.co.za')), 'website TLD reflects the searched country')
-// Names must not contain geographic words that read as other locations
-const BANNED_GEO = ['harbor', 'cedar', 'north', 'summit', 'meridian', 'atlas']
-assert(leads.every((l) => !BANNED_GEO.some((g) => l.name.toLowerCase().includes(g))), 'company names are not geographic')
-// Country-only and city-only searches still label correctly
-const coOnly = generateLeads({ country: 'Kenya', targetModel: 'agency', count: 4 })
-assert(coOnly.every((l) => l.location === 'Kenya' && l.website.endsWith('.co.ke')), 'country-only search labels + TLD correct')
-const cityOnly = generateLeads({ city: 'Austin', targetModel: 'b2b-saas', count: 4 })
-assert(cityOnly.every((l) => l.location === 'Austin'), 'city-only search labels correct')
-const neither = generateLeads({ targetModel: 'b2b-saas', count: 3 })
-assert(neither.every((l) => l.location === 'Your region'), 'no-location search falls back to Your region')
-const msg = generateOutreach({ prospect: leads[0], blueprint: bpg })
+const res2 = generateLeads({ city: 'Cape Town', country: 'South Africa', industry: 'logistics', domain: 'supply chain', targetModel: 'b2b-saas', count: 10 })
+assert(JSON.stringify(res) === JSON.stringify(res2), 'finder is deterministic')
+assert(typeof leadsToCSV(res) === 'string' && leadsToCSV(res).includes('google.com'), 'targets export to CSV with real links')
+// Location labelling for country-only / city-only / none
+assert(generateLeads({ country: 'Kenya', targetModel: 'agency', count: 4 }).location === 'Kenya', 'country-only location label')
+assert(generateLeads({ city: 'Austin', targetModel: 'b2b-saas', count: 4 }).location === 'Austin', 'city-only location label')
+assert(generateLeads({ targetModel: 'b2b-saas', count: 3 }).location === 'Your region', 'no-location falls back to Your region')
+const msg = generateOutreach({ prospect: { ...res.targets[0], name: res.targets[0].title }, blueprint: bpg })
 assert(msg.email && msg.dm && msg.followUp, 'outreach generates all variants')
 
 // --- 8. Competitors -------------------------------------------------------

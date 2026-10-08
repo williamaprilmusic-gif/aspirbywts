@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
-  MapPin, Search, Building2, Download, Target, Flame, ThermometerSun, Sprout, ExternalLink, User, TrendingUp,
-  BookmarkPlus, Check, Mail, Copy,
+  MapPin, Search, Download, Flame, ThermometerSun, Sprout, ExternalLink, User, Eye,
+  BookmarkPlus, Check, Mail, Copy, Globe, Map as MapIcon, Linkedin, Target,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, Field, TextInput, EmptyState, ProgressBar, Modal, Select } from '../components/ui.jsx'
@@ -20,7 +20,6 @@ export default function Finder() {
   const { activeBlueprint: bp, intake, notify, saveProspect, isProspectSaved } = useApp()
   const [outreachLead, setOutreachLead] = useState(null)
 
-  // Seed industry/domain/model from the active blueprint if present, else intake
   const seedIndustry = (bp && bp.intake.industries) || intake.industries || ''
   const seedDomain = (bp && bp.intake.domainExpertise) || intake.domainExpertise || ''
   const seedModel = (bp && bp.intake.targetModel) || intake.targetModel || 'b2b-saas'
@@ -32,7 +31,7 @@ export default function Finder() {
   const [model, setModel] = useState(seedModel)
   const [count, setCount] = useState(12)
   const [filter, setFilter] = useState('All')
-  const [leads, setLeads] = useState([])
+  const [result, setResult] = useState(null)
   const [searched, setSearched] = useState(false)
 
   const run = (e) => {
@@ -41,38 +40,60 @@ export default function Finder() {
       notify('Enter a city or country first', 'info')
       return
     }
-    const result = generateLeads({ city, country, industry, domain, targetModel: model, count: Number(count) })
-    setLeads(result)
+    const res = generateLeads({ city, country, industry, domain, targetModel: model, count: Number(count) })
+    setResult(res)
     setSearched(true)
-    notify(`${result.length} prospects found in ${[city, country].filter(Boolean).join(', ')}`)
+    notify(`Search targets ready for ${res.location}`)
   }
 
-  const visible = filter === 'All' ? leads : leads.filter((l) => l.priority === filter)
+  const targets = result?.targets || []
+  const visible = filter === 'All' ? targets : targets.filter((t) => t.priority === filter)
+  const counts = {
+    Hot: targets.filter((t) => t.priority === 'Hot').length,
+    Warm: targets.filter((t) => t.priority === 'Warm').length,
+    Nurture: targets.filter((t) => t.priority === 'Nurture').length,
+  }
 
   const exportCsv = () => {
-    const loc = [city, country].filter(Boolean).join(', ')
     downloadText(
-      `${slugify(loc || 'prospects')}-prospects.csv`,
-      leadsToCSV(leads, { title: `Aspir by WTS — Prospects in ${loc}` }),
+      `${slugify(result.location)}-prospect-searches.csv`,
+      leadsToCSV(result, { title: `Aspir by WTS — Prospect searches for ${result.location}` }),
       'text/csv',
     )
-    notify('Prospect list exported as CSV')
+    notify('Prospect searches exported as CSV')
   }
 
-  const counts = {
-    Hot: leads.filter((l) => l.priority === 'Hot').length,
-    Warm: leads.filter((l) => l.priority === 'Warm').length,
-    Nurture: leads.filter((l) => l.priority === 'Nurture').length,
+  // Save a target segment to the pipeline (user fills in the real company found)
+  const saveTarget = (t) => {
+    saveProspect(
+      {
+        name: t.title,
+        sector: t.sector,
+        location: t.location,
+        city: t.city,
+        country: t.country,
+        buyerRole: t.buyerRole,
+        signal: t.lookFor,
+        reason: t.reason,
+        outreach: t.outreach,
+        fit: t.fit,
+        priority: t.priority,
+        website: t.links.google,
+        links: t.links,
+      },
+      bp,
+    )
   }
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-up space-y-6">
       <div>
-        <Badge color="emerald" className="mb-2"><MapPin className="h-3 w-3" /> Pipeline Growth Engine</Badge>
+        <Badge color="emerald" className="mb-2"><MapPin className="h-3 w-3" /> Prospecting Launchpad</Badge>
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-100 sm:text-3xl">Client & Company Finder</h1>
         <p className="mt-1 max-w-2xl text-sm text-slate-400">
-          Target prospects by city and country. The engine builds a ranked list of companies and clients that match your
-          domain and business model — so you know exactly who to reach out to next.
+          Enter your location and industry and get <span className="text-emerald-300">ready-to-run searches</span> that
+          surface <span className="text-emerald-300">real local companies</span> on Google, Maps and LinkedIn — plus who
+          to contact and how to approach them.
         </p>
       </div>
 
@@ -103,10 +124,10 @@ export default function Finder() {
                 options={BUSINESS_MODELS.map((m) => ({ value: m.id, label: m.label }))}
               />
             </Field>
-            <Field label="Results" hint={`${count}`}>
-              <input type="range" min={6} max={30} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-full" />
+            <Field label="Searches" hint={`${count}`}>
+              <input type="range" min={4} max={24} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-full" />
             </Field>
-            <Button type="submit" icon={Search}>Find prospects</Button>
+            <Button type="submit" icon={Search}>Build searches</Button>
           </div>
         </form>
         {bp && (
@@ -117,37 +138,42 @@ export default function Finder() {
       </Card>
 
       {!searched && (
-        <EmptyState icon={Building2} title="Ready to find clients">
-          Enter a city or country and hit <span className="font-semibold text-emerald-300">Find prospects</span>. You'll get a
-          ranked list of target companies with the best contact, a buying signal, why they fit, and a tailored outreach angle.
+        <EmptyState icon={Search} title="Find real companies to pursue">
+          Enter a city or country and hit <span className="font-semibold text-emerald-300">Build searches</span>. You'll
+          get working Google, Google Maps and LinkedIn searches that list real local companies — plus the best contact
+          and a tailored outreach angle for each segment.
         </EmptyState>
       )}
 
-      {searched && leads.length > 0 && (
+      {searched && result && (
         <>
-          {/* Location banner */}
-          <div className="glass flex flex-col gap-2 border-emerald-400/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2.5">
+          {/* Honest note + broad searches */}
+          <Card className="border-emerald-400/20">
+            <div className="flex items-start gap-3">
               <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500/25 to-violet-500/25 text-emerald-300">
                 <MapPin className="h-5 w-5" />
               </div>
-              <div>
-                <div className="text-sm font-semibold text-slate-100">
-                  {leads.length} prospects in {leads[0].location}
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-slate-100">Real companies in {result.location}</div>
+                <div className="mb-3 text-xs text-slate-500">
+                  Aspir can't list live businesses itself, so it opens real searches instead — every link below finds
+                  actual companies you can research and contact.
                 </div>
-                <div className="text-xs text-slate-500">
-                  Example targets matching your industry &amp; model in this location — a starting list to research and contact, not a live directory.
+                <div className="flex flex-wrap gap-2">
+                  <LinkBtn href={result.broad.google} icon={Globe} label="Search Google" />
+                  <LinkBtn href={result.broad.maps} icon={MapIcon} label="Google Maps" />
+                  <LinkBtn href={result.broad.linkedin} icon={Linkedin} label="LinkedIn" />
                 </div>
               </div>
             </div>
-          </div>
+          </Card>
 
-          {/* Summary + filters */}
+          {/* Filters + export */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
               {['All', 'Hot', 'Warm', 'Nurture'].map((f) => {
                 const active = filter === f
-                const n = f === 'All' ? leads.length : counts[f]
+                const n = f === 'All' ? targets.length : counts[f]
                 return (
                   <button
                     key={f}
@@ -164,69 +190,66 @@ export default function Finder() {
             <Button variant="ghost" icon={Download} onClick={exportCsv}>Export CSV</Button>
           </div>
 
-          {/* Lead cards */}
+          {/* Target segment cards */}
           <div className="grid gap-4 md:grid-cols-2">
-            {visible.map((l) => {
-              const meta = PRIORITY_META[l.priority]
+            {visible.map((t) => {
+              const meta = PRIORITY_META[t.priority]
               const Icon = meta.icon
+              const saved = isProspectSaved({ name: t.title }, bp)
               return (
-                <Card key={l.id} glow>
+                <Card key={t.id} glow>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-violet-500/20 text-emerald-300">
-                        <Building2 className="h-5 w-5" />
+                        <Target className="h-5 w-5" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-100">{l.name}</h3>
+                        <h3 className="font-semibold text-slate-100">{t.title}</h3>
                         <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                          <MapPin className="h-3 w-3" />{l.location}
+                          <MapPin className="h-3 w-3" />{t.location}
                         </div>
                       </div>
                     </div>
-                    <Badge color={meta.color}><Icon className="h-3 w-3" />{l.priority}</Badge>
+                    <Badge color={meta.color}><Icon className="h-3 w-3" />{t.priority}</Badge>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <Badge color="slate">{l.sector}</Badge>
-                    <Badge color="slate">{l.size}</Badge>
+                  {/* Real search links */}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <LinkBtn href={t.links.google} icon={Globe} label="Google" small />
+                    <LinkBtn href={t.links.maps} icon={MapIcon} label="Maps" small />
+                    <LinkBtn href={t.links.linkedin} icon={Linkedin} label="LinkedIn" small />
                   </div>
 
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-start gap-2">
                       <User className="mt-0.5 h-4 w-4 shrink-0 text-violet-400" />
-                      <span className="text-slate-300"><span className="text-slate-500">Best contact:</span> {l.buyerRole}</span>
+                      <span className="text-slate-300"><span className="text-slate-500">Best contact:</span> {t.buyerRole}</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                      <span className="text-slate-300"><span className="text-slate-500">Signal:</span> {l.signal}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Target className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                      <span className="text-slate-300">{l.reason}</span>
+                      <Eye className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                      <span className="text-slate-300">{t.lookFor}</span>
                     </div>
                   </div>
 
                   <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-slate-400">
-                    <span className="font-semibold text-emerald-300">Outreach angle → </span>{l.outreach}
+                    <span className="font-semibold text-emerald-300">Outreach angle → </span>{t.outreach}
                   </div>
 
                   <div className="mt-3">
                     <div className="mb-1 flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-1 text-slate-500"><ExternalLink className="h-3 w-3" />{l.website}</span>
-                      <span className="font-semibold text-emerald-300">{l.fit}% fit</span>
+                      <span className="text-slate-500">Relevance to your offer</span>
+                      <span className="font-semibold text-emerald-300">{t.fit}%</span>
                     </div>
-                    <ProgressBar value={l.fit} />
+                    <ProgressBar value={t.fit} />
                   </div>
 
                   <div className="mt-3 flex gap-2">
-                    {isProspectSaved(l, bp) ? (
+                    {saved ? (
                       <Button variant="subtle" icon={Check} className="flex-1" disabled>In pipeline</Button>
                     ) : (
-                      <Button variant="ghost" icon={BookmarkPlus} className="flex-1" onClick={() => saveProspect(l, bp)}>
-                        Save
-                      </Button>
+                      <Button variant="ghost" icon={BookmarkPlus} className="flex-1" onClick={() => saveTarget(t)}>Track</Button>
                     )}
-                    <Button variant="ghost" icon={Mail} onClick={() => setOutreachLead(l)}>Outreach</Button>
+                    <Button variant="ghost" icon={Mail} onClick={() => setOutreachLead(t)}>Outreach</Button>
                   </div>
                 </Card>
               )
@@ -240,9 +263,26 @@ export default function Finder() {
   )
 }
 
+function LinkBtn({ href, icon: Icon, label, small = false }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 font-medium text-slate-200 transition hover:border-emerald-400/30 hover:bg-emerald-500/10 ${
+        small ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm'
+      }`}
+    >
+      <Icon className={small ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+      {label}
+      <ExternalLink className="h-3 w-3 opacity-60" />
+    </a>
+  )
+}
+
 function OutreachModal({ lead, blueprint, onClose, notify }) {
   if (!lead) return null
-  const msg = generateOutreach({ prospect: lead, blueprint })
+  const msg = generateOutreach({ prospect: { ...lead, name: lead.title || lead.name }, blueprint })
   const copy = async (text, label) => {
     const ok = await copyToClipboard(text)
     notify(ok ? `${label} copied` : 'Copy failed', ok ? 'success' : 'info')
@@ -260,10 +300,10 @@ function OutreachModal({ lead, blueprint, onClose, notify }) {
     </div>
   )
   return (
-    <Modal open={!!lead} onClose={onClose} title={`Outreach — ${lead.name}`} maxWidth="max-w-2xl">
+    <Modal open={!!lead} onClose={onClose} title={`Outreach — ${lead.title || lead.name}`} maxWidth="max-w-2xl">
       <p className="mb-4 text-sm text-slate-400">
-        Drafted in your voice for the <span className="text-violet-300">{lead.buyerRole}</span>, using their signal
-        {' '}("{lead.signal}") {blueprint ? 'and your blueprint\'s moat' : ''}. Edit before sending.
+        A template for the <span className="text-violet-300">{lead.buyerRole}</span> at a company you find in this
+        segment. Swap in the real company name and a specific detail before sending.
       </p>
       <div className="space-y-3">
         <Block title="Cold email" sub={`Subject: ${msg.emailSubject}`} text={msg.email} />
