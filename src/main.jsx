@@ -11,3 +11,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </AppProvider>
   </React.StrictMode>,
 )
+
+// Register the service worker for offline support + installability.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swUrl = new URL('sw.js', document.baseURI).href
+    navigator.serviceWorker.register(swUrl).catch(() => {
+      /* SW registration failed (e.g. unsupported context) — app still works */
+    })
+  })
+}

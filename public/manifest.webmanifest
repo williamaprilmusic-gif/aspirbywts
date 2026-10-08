@@ -1,0 +1,17 @@
+{
+  "name": "Aspir by WTS",
+  "short_name": "Aspir",
+  "description": "Turn your experience into a market-validated enterprise blueprint — plan, find clients, and track growth.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

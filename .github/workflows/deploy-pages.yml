@@ -1,10 +1,12 @@
 name: Deploy to GitHub Pages
 
 # Builds the Vite app and publishes dist/ to GitHub Pages.
-# Enable once: repo Settings → Pages → Build and deployment → Source: GitHub Actions.
+# This runs ONLY when triggered manually (Actions tab → "Run workflow"), so it
+# never fails before Pages is enabled. To use GitHub Pages:
+#   1. Repo Settings → Pages → Build and deployment → Source: GitHub Actions
+#   2. Actions tab → "Deploy to GitHub Pages" → Run workflow
+# (Prefer Vercel? You can ignore this workflow entirely.)
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

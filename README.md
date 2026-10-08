@@ -52,6 +52,15 @@ are relative (`base: './'`), so it also works from a subpath (e.g. GitHub Pages)
 - **GitHub Pages** — the workflow at `.github/workflows/deploy-pages.yml` builds and publishes on every push to `main`. Enable it once under **Settings → Pages → Source: GitHub Actions**.
 - **Any static host / S3 / Cloudflare Pages** — run `npm run build` and upload the `dist/` folder.
 
+## Install as an app (PWA)
+
+Aspir is an installable Progressive Web App. On the deployed site:
+- **Desktop (Chrome/Edge):** click the **Install** button in the header, or the install icon in the address bar.
+- **Android (Chrome):** tap **Install**, or browser menu → **Add to Home screen**.
+- **iPhone/iPad (Safari):** Share → **Add to Home Screen**.
+
+It includes a web manifest, maskable icons, and a service worker (runtime caching) so it opens full-screen and works offline after the first visit.
+
 ## AI Prompt Pack
 
 From the Blueprint tab, **AI prompts** opens a pack of ready-to-paste prompts

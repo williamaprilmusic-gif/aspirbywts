@@ -4,6 +4,7 @@ import {
   Moon, Sun, Sparkles, HelpCircle, Eye, Wallet, Stethoscope, Target,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
+import InstallButton from './InstallButton.jsx'
 
 const NAV = [
   { id: 'dashboard', label: 'Home', full: 'Dashboard', icon: LayoutDashboard },
@@ -71,6 +72,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {!readOnly && <InstallButton />}
             {readOnly && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-300">
                 <Eye className="h-3 w-3" /> Read-only
