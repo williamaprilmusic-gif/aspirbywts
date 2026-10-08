@@ -14,6 +14,7 @@ import Planner from './modules/Planner.jsx'
 import Finder from './modules/Finder.jsx'
 import Pipeline from './modules/Pipeline.jsx'
 import Compare from './modules/Compare.jsx'
+import Evaluate from './modules/Evaluate.jsx'
 import Saved from './modules/Saved.jsx'
 
 export default function App() {
@@ -42,6 +43,7 @@ export default function App() {
         {tab === 'finder' && <Finder />}
         {tab === 'pipeline' && <Pipeline />}
         {tab === 'compare' && <Compare />}
+        {tab === 'evaluate' && <Evaluate />}
         {tab === 'saved' && <Saved />}
       </main>
 

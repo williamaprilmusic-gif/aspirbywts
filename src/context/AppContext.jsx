@@ -12,6 +12,8 @@ const LS_KEYS = {
   theme: 'aspir.theme',
   prospects: 'aspir.prospects',
   tour: 'aspir.tourSeen',
+  evaluation: 'aspir.evaluation',
+  evalSnapshots: 'aspir.evalSnapshots',
 }
 
 function safeLoad(key, fallback) {
@@ -38,6 +40,8 @@ export function AppProvider({ children }) {
   const [theme, setTheme] = useState(() => safeLoad(LS_KEYS.theme, 'dark'))
   const [prospects, setProspects] = useState(() => safeLoad(LS_KEYS.prospects, []))
   const [tourSeen, setTourSeen] = useState(() => safeLoad(LS_KEYS.tour, false))
+  const [evaluation, setEvaluation] = useState(() => safeLoad(LS_KEYS.evaluation, {}))
+  const [evalSnapshots, setEvalSnapshots] = useState(() => safeLoad(LS_KEYS.evalSnapshots, []))
   // Read-only shared blueprint (from URL hash #view=...)
   const [shared] = useState(() => {
     try {
@@ -63,6 +67,8 @@ export function AppProvider({ children }) {
   useEffect(() => safeSave(LS_KEYS.theme, theme), [theme])
   useEffect(() => safeSave(LS_KEYS.prospects, prospects), [prospects])
   useEffect(() => safeSave(LS_KEYS.tour, tourSeen), [tourSeen])
+  useEffect(() => safeSave(LS_KEYS.evaluation, evaluation), [evaluation])
+  useEffect(() => safeSave(LS_KEYS.evalSnapshots, evalSnapshots), [evalSnapshots])
 
   // Theme class on <html>
   useEffect(() => {
@@ -232,6 +238,22 @@ export function AppProvider({ children }) {
   const markTourSeen = useCallback(() => setTourSeen(true), [])
   const restartTour = useCallback(() => setTourSeen(false), [])
 
+  // ---- Business evaluation ----
+  const setEvalAnswer = useCallback((id, value) => {
+    setEvaluation((prev) => ({ ...prev, [id]: value }))
+  }, [])
+  const resetEvaluation = useCallback(() => setEvaluation({}), [])
+  const saveEvalSnapshot = useCallback(
+    (overall) => {
+      setEvalSnapshots((prev) => [
+        ...prev,
+        { at: new Date().toISOString(), overall, answers: { ...evaluation } },
+      ].slice(-24))
+      notify('Evaluation snapshot saved')
+    },
+    [evaluation, notify],
+  )
+
   const value = useMemo(
     () => ({
       intake,
@@ -265,6 +287,11 @@ export function AppProvider({ children }) {
       markTourSeen,
       restartTour,
       readOnly,
+      evaluation,
+      setEvalAnswer,
+      resetEvaluation,
+      evalSnapshots,
+      saveEvalSnapshot,
     }),
     [
       intake,
@@ -294,6 +321,11 @@ export function AppProvider({ children }) {
       markTourSeen,
       restartTour,
       readOnly,
+      evaluation,
+      setEvalAnswer,
+      resetEvaluation,
+      evalSnapshots,
+      saveEvalSnapshot,
     ],
   )
 

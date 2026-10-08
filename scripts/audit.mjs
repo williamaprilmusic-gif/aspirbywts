@@ -16,6 +16,9 @@ import { generateLeads, leadsToCSV } from '../src/engine/leadFinder.js'
 import { generateOutreach } from '../src/engine/outreach.js'
 import { generateCompetitors } from '../src/engine/competitors.js'
 import { encodeBlueprint, decodeBlueprint } from '../src/engine/share.js'
+import {
+  EVAL_DIMENSIONS, EVAL_QUESTIONS, defaultEvalAnswers, scoreEvaluation, recommendations, evaluationToMarkdown,
+} from '../src/engine/evaluation.js'
 import { blueprintToMarkdown } from '../src/engine/exporters.js'
 import { TECH_FOUNDER_DEMO, CONSULTANT_DEMO, EMPTY_INTAKE } from '../src/engine/presets.js'
 
@@ -115,6 +118,28 @@ const enc = encodeBlueprint(bpg)
 const dec = decodeBlueprint(enc)
 assert(dec && dec.id === bpg.id, 'share link round-trips a blueprint')
 assert(decodeBlueprint('not-valid-base64!!') === null, 'bad share payload decodes to null (no throw)')
+
+// --- 10. Business evaluation ---------------------------------------------
+assert(EVAL_DIMENSIONS.length === 8, 'evaluation has 8 dimensions')
+assert(EVAL_QUESTIONS.length === EVAL_DIMENSIONS.reduce((s, d) => s + d.questions.length, 0), 'question index matches dimensions')
+assert(EVAL_QUESTIONS.every((q) => q.fix && q.text), 'every eval question has text + a fix')
+const qIds = EVAL_QUESTIONS.map((q) => q.id)
+assert(new Set(qIds).size === qIds.length, 'eval question ids are unique')
+const neutral = scoreEvaluation(defaultEvalAnswers())
+assert(neutral.overall === 60, `neutral baseline scores 60 (got ${neutral.overall})`)
+assert(neutral.dimensions.length === 8, 'eval scores all 8 dimensions')
+const allTop = {}
+EVAL_QUESTIONS.forEach((q) => (allTop[q.id] = 5))
+assert(scoreEvaluation(allTop).overall === 100, 'all-5 scores 100%')
+assert(recommendations(allTop).length === 0, 'no recommendations when all excellent')
+const allLow = {}
+EVAL_QUESTIONS.forEach((q) => (allLow[q.id] = 1))
+const lowRes = scoreEvaluation(allLow)
+assert(lowRes.overall === 20, `all-1 scores 20% (got ${lowRes.overall})`)
+assert(lowRes.weaknesses.length > 0, 'weak areas surfaced when all low')
+assert(recommendations(allLow).every((r) => r.severity === 'High'), 'all-low recs are High priority')
+assert(scoreEvaluation({}).overall === 60, 'empty answers fall back to neutral')
+assert(typeof evaluationToMarkdown(allLow) === 'string', 'evaluation exports markdown')
 
 // --- summary --------------------------------------------------------------
 console.log(`\n${checks} checks run.`)

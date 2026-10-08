@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   LayoutDashboard, Inbox, BrainCircuit, Map, LineChart, MapPin, Workflow, GitCompare, FolderOpen,
-  Moon, Sun, Sparkles, HelpCircle, Eye, Wallet,
+  Moon, Sun, Sparkles, HelpCircle, Eye, Wallet, Stethoscope,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 
@@ -15,6 +15,7 @@ const NAV = [
   { id: 'finder', label: 'Finder', full: 'Finder', icon: MapPin },
   { id: 'pipeline', label: 'Pipeline', full: 'Pipeline', icon: Workflow },
   { id: 'compare', label: 'Compare', full: 'Compare', icon: GitCompare },
+  { id: 'evaluate', label: 'Evaluate', full: 'Evaluate', icon: Stethoscope },
   { id: 'saved', label: 'Saved', full: 'Saved', icon: FolderOpen },
 ]
 

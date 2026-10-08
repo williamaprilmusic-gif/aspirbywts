@@ -11,6 +11,7 @@
 - **📊 Financial & Risk Modeling** — CAC, LTV, LTV:CAC, break-even, gross margin, a 12-month revenue projection chart, monthly breakdown table, pricing tiers, and a risk mitigation matrix.
 - **📍 Client & Company Finder** — enter a **city and country** (pre-filled from your blueprint's industry/model) to generate a ranked list of target companies/clients, each with the best contact role, a buying signal, a fit reason, and a tailored outreach angle. **One-click outreach generator** drafts a cold email, DM, and follow-up in your voice (copy to clipboard). Save prospects to your pipeline; filter by Hot/Warm/Nurture; export CSV.
 - **🔁 Prospect Pipeline** — track saved prospects through Saved → Contacted → Replied → Won/Lost with a visual funnel, per-prospect notes, inline outreach, and conversion stats.
+- **🩺 Business Evaluation (health check)** — rate an existing business across 8 weighted dimensions (product, marketing, sales, finance, customer, operations, team, growth); get an overall health score, strengths vs. weakest areas, and a prioritized list of concrete improvement ideas. Save snapshots to track the score over time; export as Markdown.
 - **⚖️ Compare Enterprises** — select up to 4 blueprints and compare fit, Year-1 revenue, CAC, LTV, break-even, and more side by side, with a weighted engine recommendation of which to build.
 - **📁 Saved Enterprises** — persist multiple blueprint iterations in `localStorage`, reload, export, or delete.
 
