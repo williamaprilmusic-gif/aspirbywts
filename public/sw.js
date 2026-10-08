@@ -1,6 +1,16 @@
 // Aspir by WTS — service worker (offline support + installability)
 // Runtime caching so it works regardless of Vite's hashed filenames.
-const CACHE = 'aspir-v1'
+const CACHE = 'aspir-v2'
+
+// Live data hosts (OpenStreetMap Nominatim + Overpass mirrors). These must
+// never be cached or intercepted — always go straight to the network so the
+// company finder returns fresh results.
+const LIVE_HOSTS = [
+  'nominatim.openstreetmap.org',
+  'overpass-api.de',
+  'overpass.kumi.systems',
+  'maps.mail.ru',
+]
 
 self.addEventListener('install', (event) => {
   // Pre-cache the app entry so a fresh install can open offline.
@@ -22,6 +32,9 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return
 
   const url = new URL(req.url)
+
+  // Live data APIs: never intercept — let the browser hit the network directly.
+  if (LIVE_HOSTS.includes(url.hostname)) return
 
   // SPA navigations: network-first, fall back to cached shell when offline.
   if (req.mode === 'navigate') {

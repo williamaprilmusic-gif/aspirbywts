@@ -46,6 +46,7 @@ export default function Finder() {
   const [companies, setCompanies] = useState([])
   const [searchResult, setSearchResult] = useState(null)
   const [liveMeta, setLiveMeta] = useState(null)
+  const [liveError, setLiveError] = useState('')
 
   const buildFallback = () => generateLeads({ city, country, industry, domain, targetModel: model, count: 12 })
 
@@ -59,6 +60,7 @@ export default function Finder() {
     setMode(null)
     setCompanies([])
     setSearchResult(null)
+    setLiveError('')
     try {
       const res = await findRealCompanies({ city, country, industry, limit: Number(count) })
       if (res.companies.length > 0) {
@@ -67,11 +69,13 @@ export default function Finder() {
         setMode('live')
         notify(`${res.companies.length} real companies found in ${res.location}`)
       } else {
+        setLiveError(`No businesses are listed in OpenStreetMap for ${res.location} yet.`)
         setSearchResult(buildFallback())
         setMode('search')
         notify('No listings found there — showing ready-to-run searches instead', 'info')
       }
     } catch (err) {
+      setLiveError(err && err.message ? err.message : 'The live company directory was unreachable.')
       setSearchResult(buildFallback())
       setMode('search')
       notify('Live lookup unavailable — showing ready-to-run searches instead', 'info')
@@ -244,14 +248,14 @@ export default function Finder() {
       )}
 
       {/* FALLBACK: ready-to-run searches */}
-      {mode === 'search' && searchResult && <SearchLaunchpad result={searchResult} notify={notify} bp={bp} saveProspect={saveProspect} isProspectSaved={isProspectSaved} setOutreachLead={setOutreachLead} />}
+      {mode === 'search' && searchResult && <SearchLaunchpad result={searchResult} reason={liveError} notify={notify} bp={bp} saveProspect={saveProspect} isProspectSaved={isProspectSaved} setOutreachLead={setOutreachLead} />}
 
       <OutreachModal lead={outreachLead} blueprint={bp} onClose={() => setOutreachLead(null)} notify={notify} />
     </div>
   )
 }
 
-function SearchLaunchpad({ result, notify, bp, saveProspect, isProspectSaved, setOutreachLead }) {
+function SearchLaunchpad({ result, reason, notify, bp, saveProspect, isProspectSaved, setOutreachLead }) {
   const targets = result.targets || []
   const saveTarget = (t) =>
     saveProspect({ name: t.title, sector: t.sector, location: t.location, city: t.city, country: t.country, buyerRole: t.buyerRole, signal: t.lookFor, reason: t.reason, outreach: t.outreach, fit: t.fit, priority: t.priority, website: t.links.google, links: t.links }, bp)
@@ -265,7 +269,10 @@ function SearchLaunchpad({ result, notify, bp, saveProspect, isProspectSaved, se
           </div>
           <div>
             <div className="text-sm font-semibold text-slate-100">Ready-to-run searches for {result.location}</div>
-            <div className="mb-3 text-xs text-slate-500">The live company directory wasn't reachable, so here are working searches that surface real companies.</div>
+            <div className="mb-3 text-xs text-slate-500">
+              {reason ? <><span className="text-amber-300">{reason}</span> </> : null}
+              Here are working searches that surface real companies.
+            </div>
             <div className="flex flex-wrap gap-2">
               <LinkBtn href={result.broad.google} icon={Globe} label="Search Google" />
               <LinkBtn href={result.broad.maps} icon={MapIcon} label="Google Maps" />
