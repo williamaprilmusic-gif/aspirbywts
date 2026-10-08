@@ -41,8 +41,9 @@ export default function Dashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Badge color="emerald" className="mb-2"><Sparkles className="h-3 w-3" /> Command Center</Badge>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-100 sm:text-3xl">
-            Building {bp.concept.productName}
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="text-slate-300">Building </span>
+            <span className="text-gradient">{bp.concept.productName}</span>
           </h1>
           <p className="mt-1 text-sm text-slate-400">Your focused view of what moves the needle this week.</p>
         </div>

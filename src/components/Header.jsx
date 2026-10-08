@@ -25,15 +25,16 @@ export default function Header() {
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
+      <div className="h-0.5 w-full bg-gradient-to-r from-emerald-400 via-violet-400 to-emerald-400 bg-[length:200%_auto] animate-shimmer" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Brand */}
           <button onClick={() => setTab('dashboard')} className="flex shrink-0 items-center gap-2.5 focus:outline-none">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-violet-500 shadow-glow">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-violet-500 shadow-glow transition-transform duration-300 hover:scale-105 hover:rotate-3">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div className="flex items-end gap-1.5">
-              <span className="text-xl font-extrabold tracking-tight text-slate-100">Aspir</span>
+              <span className="font-display text-xl font-bold tracking-tight text-gradient">Aspir</span>
               <span className="mb-0.5 rounded-md border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-300">
                 by WTS
               </span>
