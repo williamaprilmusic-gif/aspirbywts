@@ -12,7 +12,7 @@ export function roadmapStats(bp) {
   return { done, total, pct: total ? Math.round((done / total) * 100) : 0 }
 }
 
-// Readiness blends fit score, execution progress, and pipeline activity
+// Readiness blends fit, execution, validation, pipeline activity, reflection
 export function readinessScore(bp, prospects = []) {
   if (!bp) return 0
   const { pct } = roadmapStats(bp)
@@ -20,12 +20,21 @@ export function readinessScore(bp, prospects = []) {
   const contacted = mine.filter((p) => p.status !== 'Saved').length
   const won = mine.filter((p) => p.status === 'Won').length
 
-  const fitComponent = bp.fitScore * 0.35 // up to ~34
-  const execComponent = pct * 0.4 // up to 40
-  const pipelineComponent = Math.min(16, mine.length * 2 + contacted * 2 + won * 4) // up to 16
-  const reflectionComponent = Math.min(10, ((bp.intake.pastWins || '').length > 15 ? 5 : 0) + ((bp.intake.pastFailures || '').length > 15 ? 5 : 0))
+  const fitComponent = bp.fitScore * 0.3 // up to 30
+  const execComponent = pct * 0.3 // up to 30
+  const valComponent = validationScoreFor(bp) * 0.2 // up to 20
+  const pipelineComponent = Math.min(12, mine.length * 1.5 + contacted * 2 + won * 4) // up to 12
+  const reflectionComponent = Math.min(8, ((bp.intake.pastWins || '').length > 15 ? 4 : 0) + ((bp.intake.pastFailures || '').length > 15 ? 4 : 0))
 
-  return Math.round(Math.min(100, fitComponent + execComponent + pipelineComponent + reflectionComponent))
+  return Math.round(Math.min(100, fitComponent + execComponent + valComponent + pipelineComponent + reflectionComponent))
+}
+
+// local import-light helper to avoid a hard dependency cycle
+function validationScoreFor(bp) {
+  const v = bp.validation
+  if (!v || !v.length) return 0
+  const w = { validated: 100, testing: 45, untested: 0, invalidated: 0 }
+  return Math.round(v.reduce((s, x) => s + (w[x.status] ?? 0), 0) / v.length)
 }
 
 export function readinessBand(score) {

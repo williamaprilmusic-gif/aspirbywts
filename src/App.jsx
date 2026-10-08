@@ -10,6 +10,7 @@ import Intake from './modules/Intake.jsx'
 import Blueprint from './modules/Blueprint.jsx'
 import Roadmap from './modules/Roadmap.jsx'
 import Financials from './modules/Financials.jsx'
+import Planner from './modules/Planner.jsx'
 import Finder from './modules/Finder.jsx'
 import Pipeline from './modules/Pipeline.jsx'
 import Compare from './modules/Compare.jsx'
@@ -37,6 +38,7 @@ export default function App() {
         {tab === 'blueprint' && <Blueprint />}
         {tab === 'roadmap' && <Roadmap />}
         {tab === 'financials' && <Financials />}
+        {tab === 'planner' && <Planner />}
         {tab === 'finder' && <Finder />}
         {tab === 'pipeline' && <Pipeline />}
         {tab === 'compare' && <Compare />}

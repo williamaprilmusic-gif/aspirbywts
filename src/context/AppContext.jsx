@@ -125,6 +125,16 @@ export function AppProvider({ children }) {
     [notify],
   )
 
+  // Generic mutation on the active blueprint (and mirror into saved if present)
+  const updateActiveBlueprint = useCallback((patch) => {
+    setActiveBlueprint((prev) => {
+      if (!prev) return prev
+      const next = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch }
+      setSavedBlueprints((list) => list.map((b) => (b.id === next.id ? next : b)))
+      return next
+    })
+  }, [])
+
   // Roadmap mutation on the active blueprint (and mirror into saved if present)
   const updateActiveRoadmap = useCallback((updater) => {
     setActiveBlueprint((prev) => {
@@ -238,6 +248,7 @@ export function AppProvider({ children }) {
       toggleTask,
       addTask,
       removeTask,
+      updateActiveBlueprint,
       theme,
       setTheme,
       tab,
@@ -268,6 +279,7 @@ export function AppProvider({ children }) {
       toggleTask,
       addTask,
       removeTask,
+      updateActiveBlueprint,
       theme,
       tab,
       toast,

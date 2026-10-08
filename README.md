@@ -14,6 +14,9 @@
 - **⚖️ Compare Enterprises** — select up to 4 blueprints and compare fit, Year-1 revenue, CAC, LTV, break-even, and more side by side, with a weighted engine recommendation of which to build.
 - **📁 Saved Enterprises** — persist multiple blueprint iterations in `localStorage`, reload, export, or delete.
 
+- **💷 Launch Plan (execution accountability)** — a **capital allocator** that splits your working capital across model-specific buckets with a live runway counter vs. projected break-even, and a **validation scorecard** to track your riskiest assumptions (demand, pricing, channel, retention) with evidence and a validation % that feeds your readiness score.
+- **📅 Dated & gated roadmap** — set a launch start date and each phase shows its target window; phases soft-gate until the prior one is 60%+ done, with on-track / behind signals.
+
 Plus: **scenario / what-if sliders** on the financial model (price, churn, CAC, acquisition pace → live projection & break-even), a generated **competitive landscape** (positioning map + your wedge) on each blueprint, **PDF/print export**, **shareable read-only links** (blueprint encoded in the URL), and a **first-run onboarding tour** (replayable from the header).
 - **Export & demo** — export any blueprint as a printable Markdown report; load the *Tech Founder* or *Consultant* demo presets for an instant preview.
 
