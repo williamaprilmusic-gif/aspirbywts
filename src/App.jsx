@@ -6,6 +6,7 @@ import Intake from './modules/Intake.jsx'
 import Blueprint from './modules/Blueprint.jsx'
 import Roadmap from './modules/Roadmap.jsx'
 import Financials from './modules/Financials.jsx'
+import Finder from './modules/Finder.jsx'
 import Saved from './modules/Saved.jsx'
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
         {tab === 'blueprint' && <Blueprint />}
         {tab === 'roadmap' && <Roadmap />}
         {tab === 'financials' && <Financials />}
+        {tab === 'finder' && <Finder />}
         {tab === 'saved' && <Saved />}
       </main>
       <footer className="no-print border-t border-white/10 py-6 text-center text-xs text-slate-500">

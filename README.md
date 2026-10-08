@@ -8,6 +8,7 @@
 - **🧠 Analysis & Blueprint Matrix** — Founder-Market Fit score, auto-synthesized viable concept, experience-derived competitive moat, custom SWOT matrix, and tabbed executive views (Summary, Value & Offer, GTM, Unit Economics).
 - **🗺️ Operational Roadmap** — an interactive 4-phase, 90-day execution tracker with checkbox state, per-phase and overall progress bars, custom tasks, and Markdown/JSON export.
 - **📊 Financial & Risk Modeling** — CAC, LTV, LTV:CAC, break-even, gross margin, a 12-month revenue projection chart, monthly breakdown table, pricing tiers, and a risk mitigation matrix.
+- **📍 Client & Company Finder** — enter a **city and country** (pre-filled from your blueprint's industry/model) to generate a ranked list of target companies/clients, each with the best contact role, a buying signal, a fit reason, and a tailored outreach angle. Filter by Hot/Warm/Nurture and export the list as CSV.
 - **📁 Saved Enterprises** — persist multiple blueprint iterations in `localStorage`, reload, export, or delete.
 - **Export & demo** — export any blueprint as a printable Markdown report; load the *Tech Founder* or *Consultant* demo presets for an instant preview.
 

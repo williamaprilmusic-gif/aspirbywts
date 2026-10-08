@@ -1,5 +1,5 @@
 import React from 'react'
-import { Inbox, BrainCircuit, Map, LineChart, FolderOpen, Moon, Sun, Sparkles } from 'lucide-react'
+import { Inbox, BrainCircuit, Map, LineChart, FolderOpen, Moon, Sun, Sparkles, MapPin } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 
 const NAV = [
@@ -7,6 +7,7 @@ const NAV = [
   { id: 'blueprint', label: 'Blueprint', full: 'Analysis & Blueprint', icon: BrainCircuit },
   { id: 'roadmap', label: 'Roadmap', full: 'Operational Roadmap', icon: Map },
   { id: 'financials', label: 'Financials', full: 'Financial & Risk', icon: LineChart },
+  { id: 'finder', label: 'Finder', full: 'Client & Company Finder', icon: MapPin },
   { id: 'saved', label: 'Saved', full: 'Saved Enterprises', icon: FolderOpen },
 ]
 
