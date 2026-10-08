@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
 import {
   MapPin, Search, Building2, Download, Target, Flame, ThermometerSun, Sprout, ExternalLink, User, TrendingUp,
+  BookmarkPlus, Check, Mail, Copy,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
-import { Card, Badge, Button, Field, TextInput, EmptyState, ProgressBar } from '../components/ui.jsx'
+import { Card, Badge, Button, Field, TextInput, EmptyState, ProgressBar, Modal, Select } from '../components/ui.jsx'
 import { generateLeads, leadsToCSV } from '../engine/leadFinder.js'
-import { downloadText, slugify } from '../engine/exporters.js'
+import { generateOutreach } from '../engine/outreach.js'
+import { downloadText, slugify, copyToClipboard } from '../engine/exporters.js'
 import { BUSINESS_MODELS } from '../engine/blueprintEngine.js'
-import { Select } from '../components/ui.jsx'
 
 const PRIORITY_META = {
   Hot: { color: 'rose', icon: Flame },
@@ -16,7 +17,8 @@ const PRIORITY_META = {
 }
 
 export default function Finder() {
-  const { activeBlueprint: bp, intake, notify } = useApp()
+  const { activeBlueprint: bp, intake, notify, saveProspect, isProspectSaved } = useApp()
+  const [outreachLead, setOutreachLead] = useState(null)
 
   // Seed industry/domain/model from the active blueprint if present, else intake
   const seedIndustry = (bp && bp.intake.industries) || intake.industries || ''
@@ -198,12 +200,59 @@ export default function Finder() {
                     </div>
                     <ProgressBar value={l.fit} />
                   </div>
+
+                  <div className="mt-3 flex gap-2">
+                    {isProspectSaved(l, bp) ? (
+                      <Button variant="subtle" icon={Check} className="flex-1" disabled>In pipeline</Button>
+                    ) : (
+                      <Button variant="ghost" icon={BookmarkPlus} className="flex-1" onClick={() => saveProspect(l, bp)}>
+                        Save
+                      </Button>
+                    )}
+                    <Button variant="ghost" icon={Mail} onClick={() => setOutreachLead(l)}>Outreach</Button>
+                  </div>
                 </Card>
               )
             })}
           </div>
         </>
       )}
+
+      <OutreachModal lead={outreachLead} blueprint={bp} onClose={() => setOutreachLead(null)} notify={notify} />
     </div>
+  )
+}
+
+function OutreachModal({ lead, blueprint, onClose, notify }) {
+  if (!lead) return null
+  const msg = generateOutreach({ prospect: lead, blueprint })
+  const copy = async (text, label) => {
+    const ok = await copyToClipboard(text)
+    notify(ok ? `${label} copied` : 'Copy failed', ok ? 'success' : 'info')
+  }
+  const Block = ({ title, text, sub }) => (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</span>
+        <button onClick={() => copy(text, title)} className="flex items-center gap-1 text-xs text-emerald-300 hover:text-emerald-200">
+          <Copy className="h-3 w-3" /> Copy
+        </button>
+      </div>
+      {sub && <div className="mb-1 text-xs text-slate-500">{sub}</div>}
+      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-200">{text}</pre>
+    </div>
+  )
+  return (
+    <Modal open={!!lead} onClose={onClose} title={`Outreach — ${lead.name}`} maxWidth="max-w-2xl">
+      <p className="mb-4 text-sm text-slate-400">
+        Drafted in your voice for the <span className="text-violet-300">{lead.buyerRole}</span>, using their signal
+        {' '}("{lead.signal}") {blueprint ? 'and your blueprint\'s moat' : ''}. Edit before sending.
+      </p>
+      <div className="space-y-3">
+        <Block title="Cold email" sub={`Subject: ${msg.emailSubject}`} text={msg.email} />
+        <Block title="LinkedIn / DM" text={msg.dm} />
+        <Block title="Follow-up" text={msg.followUp} />
+      </div>
+    </Modal>
   )
 }

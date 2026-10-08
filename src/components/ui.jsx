@@ -136,6 +136,24 @@ export function EmptyState({ icon: Icon, title, children, action }) {
   )
 }
 
+export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
+  if (!open) return null
+  return (
+    <div className="no-print fixed inset-0 z-50 grid place-items-center p-4">
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={onClose} />
+      <div className={`glass-strong relative w-full ${maxWidth} max-h-[85vh] overflow-y-auto animate-fade-up p-5 sm:p-6`}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-slate-200">
+            <span className="text-xl leading-none">×</span>
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // Circular score gauge
 export function ScoreRing({ score = 0, size = 132 }) {
   const stroke = 11

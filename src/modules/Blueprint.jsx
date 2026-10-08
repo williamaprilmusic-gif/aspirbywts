@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
 import {
   BrainCircuit, Save, Download, FileText, Target, Shield, TrendingUp, Megaphone,
-  Rocket, Zap, AlertTriangle, Lightbulb, Gem, ArrowRight,
+  Rocket, Zap, AlertTriangle, Lightbulb, Gem, ArrowRight, Swords, Printer, Share2, Crosshair,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, ScoreRing, EmptyState, Stat } from '../components/ui.jsx'
 import { money } from '../engine/blueprintEngine.js'
-import { blueprintToMarkdown, downloadText, slugify } from '../engine/exporters.js'
+import { blueprintToMarkdown, downloadText, slugify, copyToClipboard } from '../engine/exporters.js'
+import { generateCompetitors } from '../engine/competitors.js'
+import { buildShareUrl } from '../engine/share.js'
 
 const EXEC_TABS = [
   { id: 'summary', label: 'Executive Summary', icon: FileText },
@@ -16,7 +18,7 @@ const EXEC_TABS = [
 ]
 
 export default function Blueprint() {
-  const { activeBlueprint: bp, saveActive, setTab, notify } = useApp()
+  const { activeBlueprint: bp, saveActive, setTab, notify, readOnly } = useApp()
   const [exec, setExec] = useState('summary')
 
   if (!bp) {
@@ -37,6 +39,15 @@ export default function Blueprint() {
     downloadText(`${slugify(bp.concept.productName)}-blueprint.md`, blueprintToMarkdown(bp))
     notify('Markdown exported')
   }
+  const printPdf = () => {
+    notify('Opening print dialog — choose "Save as PDF"', 'info')
+    setTimeout(() => window.print(), 250)
+  }
+  const shareLink = async () => {
+    const ok = await copyToClipboard(buildShareUrl(bp))
+    notify(ok ? 'Read-only share link copied' : 'Could not copy link', ok ? 'success' : 'info')
+  }
+  const competitors = generateCompetitors(bp)
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-up space-y-6">
@@ -53,9 +64,11 @@ export default function Blueprint() {
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-100">{bp.concept.productName}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">{bp.concept.valueProp}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button icon={Save} onClick={saveActive}>Save Enterprise</Button>
-              <Button variant="ghost" icon={Download} onClick={exportMd}>Export Markdown</Button>
-              <Button variant="ghost" icon={Rocket} onClick={() => setTab('roadmap')}>View Roadmap</Button>
+              {!readOnly && <Button icon={Save} onClick={saveActive}>Save Enterprise</Button>}
+              <Button variant="ghost" icon={Printer} onClick={printPdf}>Export PDF</Button>
+              <Button variant="ghost" icon={Download} onClick={exportMd}>Markdown</Button>
+              {!readOnly && <Button variant="ghost" icon={Share2} onClick={shareLink}>Share link</Button>}
+              <Button variant="ghost" icon={Rocket} onClick={() => setTab('roadmap')}>Roadmap</Button>
             </div>
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -105,6 +118,9 @@ export default function Blueprint() {
           <SwotQuadrant title="Threats" color="amber" icon={Shield} items={bp.swot.threats} />
         </div>
       </Card>
+
+      {/* Competitive landscape */}
+      {competitors && <CompetitorSnapshot data={competitors} />}
 
       {/* Executive tabbed views */}
       <Card strong>
@@ -248,6 +264,68 @@ function SwotQuadrant({ title, items, color, icon: Icon }) {
         ))}
       </ul>
     </div>
+  )
+}
+
+function CompetitorSnapshot({ data }) {
+  return (
+    <Card>
+      <div className="mb-4 flex items-center gap-2">
+        <Swords className="h-5 w-5 text-violet-400" />
+        <h2 className="font-semibold text-slate-100">Competitive Landscape</h2>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-5">
+        {/* Positioning map */}
+        <div className="lg:col-span-2">
+          <div className="relative aspect-square w-full rounded-2xl border border-white/10 bg-white/5 p-3">
+            {/* axes labels */}
+            <span className="absolute left-1/2 top-1.5 -translate-x-1/2 text-[10px] text-slate-500">High price</span>
+            <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] text-slate-500">Low price</span>
+            <span className="absolute left-1.5 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] text-slate-500">Generic</span>
+            <span className="absolute right-1.5 top-1/2 -translate-y-1/2 rotate-90 text-[10px] text-slate-500">Niche-deep</span>
+            <div className="absolute inset-8 rounded-xl border border-dashed border-white/10" />
+            {data.competitors.map((c, i) => (
+              <div
+                key={i}
+                className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                style={{ left: `${12 + c.focus * 76}%`, top: `${12 + (1 - c.price) * 76}%` }}
+                title={c.type}
+              >
+                <span className={`h-3 w-3 rounded-full ${c.isYou ? 'bg-emerald-400 shadow-glow ring-2 ring-emerald-300' : 'bg-violet-400/70'}`} />
+                <span className={`mt-1 max-w-[80px] text-center text-[9px] leading-tight ${c.isYou ? 'font-semibold text-emerald-300' : 'text-slate-400'}`}>
+                  {c.isYou ? 'You' : c.type}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Competitors + gaps */}
+        <div className="space-y-3 lg:col-span-3">
+          {data.competitors.filter((c) => !c.isYou).map((c, i) => (
+            <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+              <div className="font-medium text-slate-200">{c.type}</div>
+              <div className="mt-1 grid gap-1 sm:grid-cols-2">
+                <span className="text-emerald-300">+ {c.strength}</span>
+                <span className="text-rose-300">− {c.weakness}</span>
+              </div>
+            </div>
+          ))}
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+            <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-emerald-300">
+              <Crosshair className="h-4 w-4" /> Your wedge
+            </div>
+            <ul className="space-y-1 text-sm text-slate-300">
+              {data.wedges.map((w, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-emerald-400" />{w}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </Card>
   )
 }
 

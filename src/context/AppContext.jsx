@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import { EMPTY_INTAKE } from '../engine/presets.js'
 import { generateBlueprint } from '../engine/blueprintEngine.js'
+import { readSharedFromUrl } from '../engine/share.js'
 
 const AppContext = createContext(null)
 
@@ -9,6 +10,8 @@ const LS_KEYS = {
   saved: 'aspir.saved',
   active: 'aspir.active',
   theme: 'aspir.theme',
+  prospects: 'aspir.prospects',
+  tour: 'aspir.tourSeen',
 }
 
 function safeLoad(key, fallback) {
@@ -33,14 +36,33 @@ export function AppProvider({ children }) {
   const [savedBlueprints, setSavedBlueprints] = useState(() => safeLoad(LS_KEYS.saved, []))
   const [activeBlueprint, setActiveBlueprint] = useState(() => safeLoad(LS_KEYS.active, null))
   const [theme, setTheme] = useState(() => safeLoad(LS_KEYS.theme, 'dark'))
-  const [tab, setTab] = useState('intake')
+  const [prospects, setProspects] = useState(() => safeLoad(LS_KEYS.prospects, []))
+  const [tourSeen, setTourSeen] = useState(() => safeLoad(LS_KEYS.tour, false))
+  // Read-only shared blueprint (from URL hash #view=...)
+  const [shared] = useState(() => {
+    try {
+      return readSharedFromUrl()
+    } catch {
+      return null
+    }
+  })
+  const readOnly = !!shared
+  const [tab, setTab] = useState(() => (shared ? 'blueprint' : 'dashboard'))
   const [toast, setToast] = useState(null)
+
+  // In read-only mode, surface the shared blueprint as the active one
+  useEffect(() => {
+    if (shared) setActiveBlueprint(shared)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Persistence
   useEffect(() => safeSave(LS_KEYS.intake, intake), [intake])
   useEffect(() => safeSave(LS_KEYS.saved, savedBlueprints), [savedBlueprints])
   useEffect(() => safeSave(LS_KEYS.active, activeBlueprint), [activeBlueprint])
   useEffect(() => safeSave(LS_KEYS.theme, theme), [theme])
+  useEffect(() => safeSave(LS_KEYS.prospects, prospects), [prospects])
+  useEffect(() => safeSave(LS_KEYS.tour, tourSeen), [tourSeen])
 
   // Theme class on <html>
   useEffect(() => {
@@ -150,6 +172,56 @@ export function AppProvider({ children }) {
     [updateActiveRoadmap],
   )
 
+  // ---- Prospect pipeline ----
+  const saveProspect = useCallback(
+    (lead, blueprint) => {
+      setProspects((prev) => {
+        const key = `${blueprint ? blueprint.id : 'global'}:${lead.name}`
+        if (prev.some((p) => p.key === key)) {
+          notify('Already in your pipeline', 'info')
+          return prev
+        }
+        notify('Added to pipeline')
+        return [
+          {
+            ...lead,
+            key,
+            status: 'Saved',
+            notes: '',
+            blueprintId: blueprint ? blueprint.id : null,
+            productName: blueprint ? blueprint.concept.productName : null,
+            savedAt: new Date().toISOString(),
+          },
+          ...prev,
+        ]
+      })
+    },
+    [notify],
+  )
+
+  const isProspectSaved = useCallback(
+    (lead, blueprint) => {
+      const key = `${blueprint ? blueprint.id : 'global'}:${lead.name}`
+      return prospects.some((p) => p.key === key)
+    },
+    [prospects],
+  )
+
+  const updateProspect = useCallback((key, patch) => {
+    setProspects((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)))
+  }, [])
+
+  const removeProspect = useCallback(
+    (key) => {
+      setProspects((prev) => prev.filter((p) => p.key !== key))
+      notify('Prospect removed', 'info')
+    },
+    [notify],
+  )
+
+  const markTourSeen = useCallback(() => setTourSeen(true), [])
+  const restartTour = useCallback(() => setTourSeen(false), [])
+
   const value = useMemo(
     () => ({
       intake,
@@ -173,6 +245,15 @@ export function AppProvider({ children }) {
       toast,
       notify,
       dismissToast,
+      prospects,
+      saveProspect,
+      isProspectSaved,
+      updateProspect,
+      removeProspect,
+      tourSeen,
+      markTourSeen,
+      restartTour,
+      readOnly,
     }),
     [
       intake,
@@ -192,6 +273,15 @@ export function AppProvider({ children }) {
       toast,
       notify,
       dismissToast,
+      prospects,
+      saveProspect,
+      isProspectSaved,
+      updateProspect,
+      removeProspect,
+      tourSeen,
+      markTourSeen,
+      restartTour,
+      readOnly,
     ],
   )
 
