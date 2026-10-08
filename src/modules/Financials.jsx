@@ -1,8 +1,9 @@
-import React from 'react'
-import { LineChart, TrendingUp, Megaphone, Zap, Target, Percent, ShieldAlert, Clock } from 'lucide-react'
+import React, { useState } from 'react'
+import { LineChart, TrendingUp, Megaphone, Zap, Target, Percent, ShieldAlert, Clock, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
-import { Card, Badge, Button, EmptyState, Stat } from '../components/ui.jsx'
+import { Card, Badge, Button, EmptyState, Stat, Field } from '../components/ui.jsx'
 import { money } from '../engine/blueprintEngine.js'
+import { defaultScenario, computeScenario } from '../engine/scenario.js'
 
 export default function Financials() {
   const { activeBlueprint: bp, setTab } = useApp()
@@ -72,6 +73,9 @@ export default function Financials() {
         </div>
       </Card>
 
+      {/* Scenario / what-if */}
+      <ScenarioPanel bp={bp} m={m} />
+
       {/* Economics table + pricing */}
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3 overflow-x-auto">
@@ -135,6 +139,79 @@ export default function Financials() {
           ))}
         </div>
       </Card>
+    </div>
+  )
+}
+
+function ScenarioPanel({ bp, m }) {
+  const [s, setS] = useState(() => defaultScenario(bp))
+  const sc = computeScenario(bp, s)
+  const maxRev = Math.max(...sc.monthlyDeals.map((d) => d.revenue), 1)
+  const reset = () => setS(defaultScenario(bp))
+  const baseGross = bp.economics.year1Gross
+  const delta = baseGross ? Math.round(((sc.year1Gross - baseGross) / baseGross) * 100) : 0
+
+  const set = (k) => (e) => setS((prev) => ({ ...prev, [k]: Number(e.target.value) }))
+
+  return (
+    <Card strong>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="h-5 w-5 text-violet-400" />
+          <h2 className="font-semibold text-slate-100">What-If Scenario Modeling</h2>
+        </div>
+        <Button variant="subtle" icon={RotateCcw} onClick={reset}>Reset</Button>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-4">
+          <Field label="Pricing" hint={`${s.priceMult.toFixed(2)}× · ${m(sc.acv)} ACV`}>
+            <input type="range" min={0.5} max={2} step={0.05} value={s.priceMult} onChange={set('priceMult')} className="w-full" />
+          </Field>
+          <Field label="Monthly churn" hint={`${(s.churnMonthly * 100).toFixed(1)}%`}>
+            <input type="range" min={0} max={0.15} step={0.005} value={s.churnMonthly} onChange={set('churnMonthly')} className="w-full" />
+          </Field>
+          <Field label="CAC" hint={m(sc.cac)}>
+            <input type="range" min={Math.max(1, Math.round(bp.economics.cac * 0.3))} max={Math.round(bp.economics.cac * 2.5)} step={1} value={s.cac} onChange={set('cac')} className="w-full" />
+          </Field>
+          <Field label="Acquisition pace" hint={`${s.growthMult.toFixed(2)}× new customers`}>
+            <input type="range" min={0.3} max={3} step={0.05} value={s.growthMult} onChange={set('growthMult')} className="w-full" />
+          </Field>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-2">
+            <ScenarioStat label="LTV:CAC" value={`${sc.ltvCacRatio}:1`} good={sc.ltvCacRatio >= 3} />
+            <ScenarioStat label="Break-even" value={typeof sc.breakeven === 'number' ? `Mo. ${sc.breakeven}` : '—'} good={typeof sc.breakeven === 'number' && sc.breakeven <= 9} />
+            <ScenarioStat label="Year-1" value={m(sc.year1Gross)} good={delta >= 0} />
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+            <span className="text-slate-400">vs. base Year-1 ({m(baseGross)}): </span>
+            <span className={delta >= 0 ? 'font-semibold text-emerald-300' : 'font-semibold text-rose-300'}>
+              {delta >= 0 ? '+' : ''}{delta}%
+            </span>
+          </div>
+          <div className="flex h-28 items-end gap-1">
+            {sc.monthlyDeals.map((d) => (
+              <div key={d.month} className="flex flex-1 flex-col items-center gap-1">
+                <div className="flex w-full flex-1 items-end">
+                  <div className="w-full rounded-t bg-gradient-to-t from-violet-500/60 to-emerald-500/80 transition-all" style={{ height: `${Math.max(3, (d.revenue / maxRev) * 100)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500">Break-even here = first month cumulative gross-margin revenue covers cumulative acquisition spend.</p>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function ScenarioStat({ label, value, good }) {
+  return (
+    <div className={`rounded-xl border p-3 ${good ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
+      <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="text-lg font-bold text-slate-100">{value}</div>
     </div>
   )
 }

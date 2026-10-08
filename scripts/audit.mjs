@@ -1,0 +1,274 @@
+// ============================================================================
+//  Aspir by WTS — Full audit (engine + invariants)
+//  Run with:  npm run audit   (or: node scripts/audit.mjs)
+//  Exits non-zero if any invariant fails, so it can gate CI / a build step.
+//  Pair with `npm run build` for a complete check (compile + logic).
+// ============================================================================
+
+import { generateBlueprint, BUSINESS_MODELS, CURRENCIES } from '../src/engine/blueprintEngine.js'
+import {
+  defaultBudget, budgetStats, roadmapGating, phaseStatus, phaseDates,
+  defaultValidation, validationScore,
+} from '../src/engine/execution.js'
+import { computeScenario, defaultScenario } from '../src/engine/scenario.js'
+import { readinessScore, nextActions, pipelineFunnel, roadmapStats } from '../src/engine/insights.js'
+import { generateLeads, leadsToCSV } from '../src/engine/leadFinder.js'
+import { generateOutreach } from '../src/engine/outreach.js'
+import { generateCompetitors } from '../src/engine/competitors.js'
+import { encodeBlueprint, decodeBlueprint } from '../src/engine/share.js'
+import {
+  EVAL_DIMENSIONS, EVAL_QUESTIONS, defaultEvalAnswers, scoreEvaluation, recommendations, evaluationToMarkdown,
+} from '../src/engine/evaluation.js'
+import { buildBackup, parseBackup, mergeBy } from '../src/engine/backup.js'
+import { attentionItems, getBudget } from '../src/engine/execution.js'
+import { GOAL_KIND_LIST, defaultGoal, computeGoal, goalsSummary } from '../src/engine/goals.js'
+import { getStartedSteps, nextStep } from '../src/engine/guide.js'
+import { generatePromptPack, promptPackToMarkdown } from '../src/engine/prompts.js'
+import { blueprintToMarkdown } from '../src/engine/exporters.js'
+import { TECH_FOUNDER_DEMO, CONSULTANT_DEMO, EMPTY_INTAKE } from '../src/engine/presets.js'
+
+let fails = 0
+let checks = 0
+const assert = (cond, msg) => {
+  checks++
+  if (!cond) {
+    console.log('  ✗ FAIL:', msg)
+    fails++
+  }
+}
+
+// share.js uses btoa/atob — polyfill for Node if needed
+if (typeof globalThis.btoa === 'undefined') {
+  globalThis.btoa = (s) => Buffer.from(s, 'binary').toString('base64')
+  globalThis.atob = (s) => Buffer.from(s, 'base64').toString('binary')
+}
+
+console.log('Running Aspir full audit…\n')
+
+// --- 1. Blueprint generation across every model + currency ---------------
+for (const model of BUSINESS_MODELS.map((m) => m.id)) {
+  for (const currency of Object.keys(CURRENCIES)) {
+    const bp = generateBlueprint({ ...EMPTY_INTAKE, targetModel: model, currency })
+    assert(bp && bp.id, `blueprint generates for ${model}/${currency}`)
+    assert(bp.fitScore >= 0 && bp.fitScore <= 100, `${model} fit in 0–100`)
+    assert(typeof bp.economics.breakeven === 'number', `${model} breakeven numeric`)
+    assert(bp.economics.monthlyDeals.length === 12, `${model} has 12 months`)
+    assert(bp.roadmap.length === 4, `${model} has 4 roadmap phases`)
+    assert(typeof blueprintToMarkdown(bp) === 'string', `${model} exports markdown`)
+  }
+}
+
+// --- 2. Capital allocator -------------------------------------------------
+for (const model of BUSINESS_MODELS.map((m) => m.id)) {
+  const bp = generateBlueprint({ ...EMPTY_INTAKE, targetModel: model, capital: 10000 })
+  const bud = defaultBudget(bp)
+  const sum = bud.allocations.reduce((s, a) => s + a.pct, 0)
+  assert(sum === 100, `budget ${model} sums to 100% (got ${sum})`)
+  assert(bud.monthlyBurn >= 1, `budget ${model} burn >= 1`)
+  assert(budgetStats(bud).runway >= 0, `budget ${model} runway >= 0`)
+}
+const zeroBud = defaultBudget(generateBlueprint({ ...EMPTY_INTAKE, capital: 0 }))
+assert(zeroBud.monthlyBurn >= 1, 'zero-capital burn >= 1 (no divide-by-zero)')
+
+// --- 3. Roadmap gating + dates -------------------------------------------
+const bpg = generateBlueprint(TECH_FOUNDER_DEMO)
+const g1 = roadmapGating(bpg.roadmap)
+assert(g1[bpg.roadmap[0].id].locked === false, 'phase 1 starts unlocked')
+assert(g1[bpg.roadmap[1].id].locked === true, 'phase 2 starts locked')
+bpg.roadmap[0].tasks.forEach((t) => (t.done = true))
+assert(roadmapGating(bpg.roadmap)[bpg.roadmap[1].id].locked === false, 'phase 2 unlocks after phase 1 done')
+const pd = phaseDates('2026-01-01', 'p3')
+assert(pd.start && pd.end && pd.end > pd.start, 'phase dates ordered')
+assert(phaseStatus('', bpg.roadmap[1]).label.length > 0, 'phase status renders without a start date')
+
+// --- 4. Validation scorecard ---------------------------------------------
+const val = defaultValidation(bpg)
+assert(validationScore(val) === 0, 'validation starts at 0%')
+val[0].status = 'validated'
+val[1].status = 'testing'
+assert(validationScore(val) > 0 && validationScore(val) <= 100, 'validation score in range after updates')
+
+// --- 5. Scenario engine ---------------------------------------------------
+const sc = computeScenario(bpg, defaultScenario(bpg))
+assert(sc.year1Gross > 0, 'scenario base revenue > 0')
+assert(sc.monthlyDeals.length === 12, 'scenario has 12 months')
+const scZero = computeScenario(bpg, { ...defaultScenario(bpg), growthMult: 0, churnMonthly: 0.1 })
+assert(scZero.year1Gross >= 0, 'scenario non-negative at zero growth')
+
+// --- 6. Insights ----------------------------------------------------------
+assert(readinessScore(bpg, []) >= 0 && readinessScore(bpg, []) <= 100, 'readiness in 0–100')
+assert(Array.isArray(nextActions(bpg, 3)), 'nextActions returns array')
+assert(pipelineFunnel([], bpg.id).total === 0, 'empty funnel totals 0')
+assert(roadmapStats(bpg).pct >= 0, 'roadmap stats computed')
+
+// --- 7. Lead finder + outreach -------------------------------------------
+const leads = generateLeads({ city: 'Cape Town', country: 'South Africa', industry: 'logistics', domain: 'supply chain', targetModel: 'b2b-saas', count: 10 })
+assert(leads.length === 10, 'finder returns requested count')
+assert(leads.every((l) => l.fit >= 0 && l.fit <= 100), 'lead fit scores in range')
+assert(leads[0].fit >= leads[leads.length - 1].fit, 'leads sorted by fit desc')
+// determinism
+const leads2 = generateLeads({ city: 'Cape Town', country: 'South Africa', industry: 'logistics', domain: 'supply chain', targetModel: 'b2b-saas', count: 10 })
+assert(JSON.stringify(leads) === JSON.stringify(leads2), 'finder is deterministic')
+assert(typeof leadsToCSV(leads) === 'string', 'leads export to CSV')
+// Every lead is anchored to the exact searched location (no foreign places)
+assert(leads.every((l) => l.location === 'Cape Town, South Africa'), 'all leads show the searched location')
+assert(leads.every((l) => l.country === 'South Africa' && l.city === 'Cape Town'), 'lead city/country match the search')
+assert(leads.every((l) => l.website.endsWith('.co.za')), 'website TLD reflects the searched country')
+// Names must not contain geographic words that read as other locations
+const BANNED_GEO = ['harbor', 'cedar', 'north', 'summit', 'meridian', 'atlas']
+assert(leads.every((l) => !BANNED_GEO.some((g) => l.name.toLowerCase().includes(g))), 'company names are not geographic')
+// Country-only and city-only searches still label correctly
+const coOnly = generateLeads({ country: 'Kenya', targetModel: 'agency', count: 4 })
+assert(coOnly.every((l) => l.location === 'Kenya' && l.website.endsWith('.co.ke')), 'country-only search labels + TLD correct')
+const cityOnly = generateLeads({ city: 'Austin', targetModel: 'b2b-saas', count: 4 })
+assert(cityOnly.every((l) => l.location === 'Austin'), 'city-only search labels correct')
+const neither = generateLeads({ targetModel: 'b2b-saas', count: 3 })
+assert(neither.every((l) => l.location === 'Your region'), 'no-location search falls back to Your region')
+const msg = generateOutreach({ prospect: leads[0], blueprint: bpg })
+assert(msg.email && msg.dm && msg.followUp, 'outreach generates all variants')
+
+// --- 8. Competitors -------------------------------------------------------
+const comp = generateCompetitors(bpg)
+assert(comp.competitors.some((c) => c.isYou), 'competitor map includes "you"')
+assert(comp.competitors.every((c) => c.price >= 0 && c.price <= 1 && c.focus >= 0 && c.focus <= 1), 'competitor coords in 0–1')
+
+// --- 9. Share round-trip --------------------------------------------------
+const enc = encodeBlueprint(bpg)
+const dec = decodeBlueprint(enc)
+assert(dec && dec.id === bpg.id, 'share link round-trips a blueprint')
+assert(decodeBlueprint('not-valid-base64!!') === null, 'bad share payload decodes to null (no throw)')
+
+// --- 10. Business evaluation ---------------------------------------------
+assert(EVAL_DIMENSIONS.length === 8, 'evaluation has 8 dimensions')
+assert(EVAL_QUESTIONS.length === EVAL_DIMENSIONS.reduce((s, d) => s + d.questions.length, 0), 'question index matches dimensions')
+assert(EVAL_QUESTIONS.every((q) => q.fix && q.text), 'every eval question has text + a fix')
+const qIds = EVAL_QUESTIONS.map((q) => q.id)
+assert(new Set(qIds).size === qIds.length, 'eval question ids are unique')
+const neutral = scoreEvaluation(defaultEvalAnswers())
+assert(neutral.overall === 60, `neutral baseline scores 60 (got ${neutral.overall})`)
+assert(neutral.dimensions.length === 8, 'eval scores all 8 dimensions')
+const allTop = {}
+EVAL_QUESTIONS.forEach((q) => (allTop[q.id] = 5))
+assert(scoreEvaluation(allTop).overall === 100, 'all-5 scores 100%')
+assert(recommendations(allTop).length === 0, 'no recommendations when all excellent')
+const allLow = {}
+EVAL_QUESTIONS.forEach((q) => (allLow[q.id] = 1))
+const lowRes = scoreEvaluation(allLow)
+assert(lowRes.overall === 20, `all-1 scores 20% (got ${lowRes.overall})`)
+assert(lowRes.weaknesses.length > 0, 'weak areas surfaced when all low')
+assert(recommendations(allLow).every((r) => r.severity === 'High'), 'all-low recs are High priority')
+assert(scoreEvaluation({}).overall === 60, 'empty answers fall back to neutral')
+assert(typeof evaluationToMarkdown(allLow) === 'string', 'evaluation exports markdown')
+
+// --- 11. Backup / restore round-trip -------------------------------------
+const backup = buildBackup({ savedBlueprints: [bpg], prospects: [{ key: 'k1', name: 'Acme', status: 'Saved' }], evaluation: { 'product-1': 5 }, evalSnapshots: [] })
+assert(backup.app === 'aspir-by-wts' && backup.version >= 1, 'backup has app + version')
+const parsed = parseBackup(JSON.stringify(backup))
+assert(parsed.ok && parsed.data.blueprints.length === 1, 'backup round-trips')
+assert(parseBackup('{not json').ok === false, 'invalid JSON rejected')
+assert(parseBackup(JSON.stringify({ app: 'something-else' })).ok === false, 'foreign file rejected')
+assert(parseBackup(JSON.stringify({ app: 'aspir-by-wts', blueprints: [] })).ok === false, 'empty backup rejected')
+const merged = mergeBy([{ id: 'a' }, { id: 'b' }], [{ id: 'b', x: 1 }, { id: 'c' }], 'id')
+assert(merged.length === 3 && merged.find((x) => x.id === 'b').x === 1, 'mergeBy dedupes + incoming wins')
+
+// --- 12. Attention feed ---------------------------------------------------
+assert(attentionItems(null).length === 0, 'attention empty without blueprint')
+const freshBp = generateBlueprint(TECH_FOUNDER_DEMO)
+const attn = attentionItems(freshBp, { prospects: [], savedBlueprints: [] })
+assert(Array.isArray(attn) && attn.length > 0, 'attention surfaces items for a new unsaved blueprint')
+assert(attn.some((a) => a.kind === 'save'), 'flags unsaved blueprint')
+assert(attn.some((a) => a.kind === 'date'), 'flags missing start date')
+assert(attn.every((a) => a.tab && a.text && a.severity), 'attention items are well-formed')
+assert(attn.length <= 6, 'attention capped at 6')
+// a fully-handled blueprint should have fewer nags
+const handled = { ...freshBp, startDate: '2999-01-01' }
+handled.validation = freshBp.validation // undefined ok
+const attn2 = attentionItems(handled, { prospects: [], savedBlueprints: [handled] })
+assert(!attn2.some((a) => a.kind === 'save'), 'saved blueprint not flagged for saving')
+// Stale-prospect nag uses last activity (updatedAt), not original savedAt
+const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+const fresh = new Date().toISOString()
+const staleAttn = attentionItems(freshBp, {
+  prospects: [{ blueprintId: freshBp.id, status: 'Contacted', savedAt: old, updatedAt: old }],
+  savedBlueprints: [freshBp],
+})
+assert(staleAttn.some((a) => a.kind === 'stale'), 'a prospect untouched for 10 days is flagged stale')
+const activeAttn = attentionItems(freshBp, {
+  prospects: [{ blueprintId: freshBp.id, status: 'Contacted', savedAt: old, updatedAt: fresh }],
+  savedBlueprints: [freshBp],
+})
+assert(!activeAttn.some((a) => a.kind === 'stale'), 'a recently-updated prospect is NOT flagged stale')
+
+// --- 13. Goals & targets --------------------------------------------------
+const goalBp = generateBlueprint(TECH_FOUNDER_DEMO)
+for (const kind of GOAL_KIND_LIST) {
+  const g = defaultGoal(kind)
+  const c = computeGoal(g, { bp: goalBp, prospects: [] })
+  assert(c.pct >= 0 && c.pct <= 100, `goal ${kind} pct in 0–100`)
+}
+// customers auto-pulls Won prospects
+const wonCtx = { bp: goalBp, prospects: [
+  { blueprintId: goalBp.id, status: 'Won' }, { blueprintId: goalBp.id, status: 'Won' }, { blueprintId: goalBp.id, status: 'Saved' },
+] }
+const custGoal = { ...defaultGoal('customers'), target: 4 }
+assert(computeGoal(custGoal, wonCtx).value === 2, 'customers goal counts Won prospects')
+assert(computeGoal(custGoal, wonCtx).pct === 50, 'customers goal pct = 2/4')
+// roadmap auto = 0% initially
+assert(computeGoal(defaultGoal('roadmap'), { bp: goalBp, prospects: [] }).pct === 0, 'roadmap goal starts 0%')
+// manual revenue
+const revGoal = { ...defaultGoal('revenue'), target: 1000, current: 500 }
+assert(computeGoal(revGoal, { bp: goalBp, prospects: [] }).pct === 50, 'manual revenue goal pct = 500/1000')
+// date goal: overdue in the past, not done
+const pastGoal = { ...defaultGoal('date'), targetDate: '2000-01-01' }
+assert(computeGoal(pastGoal, { bp: goalBp, prospects: [] }).overdue === true, 'past date goal is overdue')
+const futureGoal = { ...defaultGoal('date'), targetDate: '2999-01-01' }
+assert(computeGoal(futureGoal, { bp: goalBp, prospects: [] }).overdue === false, 'future date goal not overdue')
+// done overrides
+assert(computeGoal({ ...pastGoal, done: true }, { bp: goalBp, prospects: [] }).pct === 100, 'done goal is 100%')
+// summary + attention hook
+const sum = goalsSummary([custGoal, revGoal], wonCtx)
+assert(sum.count === 2 && sum.avgPct >= 0 && sum.avgPct <= 100, 'goalsSummary well-formed')
+const bpWithOverdue = { ...goalBp, goals: [pastGoal] }
+assert(attentionItems(bpWithOverdue, { prospects: [], savedBlueprints: [bpWithOverdue] }).some((a) => a.kind === 'goal'), 'overdue goal surfaces in attention feed')
+
+// --- 14. Guided onboarding ------------------------------------------------
+const emptyGuide = nextStep({ activeBlueprint: null, savedBlueprints: [], prospects: [], evaluation: {} })
+assert(emptyGuide.current && emptyGuide.current.tab === 'intake', 'first step guides to intake')
+assert(emptyGuide.doneCount === 0 && emptyGuide.total === 6, 'guide has 6 steps, none done initially')
+assert(!emptyGuide.allDone, 'guide not complete when nothing done')
+const guideBp = generateBlueprint(TECH_FOUNDER_DEMO)
+const withBp = nextStep({ activeBlueprint: guideBp, savedBlueprints: [guideBp], prospects: [], evaluation: {} })
+assert(withBp.steps.find((s) => s.key === 'blueprint').done, 'blueprint step done once generated')
+assert(withBp.steps.find((s) => s.key === 'save').done, 'save step done when in saved list')
+assert(withBp.current.number >= 1 && withBp.current.number <= 6, 'current step number in range')
+// fully complete
+const doneBp = { ...guideBp, startDate: '2026-01-01', goals: [{ id: 'g' }] }
+const full = nextStep({
+  activeBlueprint: doneBp,
+  savedBlueprints: [doneBp],
+  prospects: [
+    { blueprintId: doneBp.id }, { blueprintId: doneBp.id }, { blueprintId: doneBp.id },
+  ],
+  evaluation: { 'product-1': 4 },
+})
+assert(full.allDone === true && full.current === null, 'guide completes when all steps satisfied')
+assert(getStartedSteps({ activeBlueprint: null }).every((s) => s.tab && s.cta && s.label), 'every step well-formed')
+
+// --- 15. AI prompt pack ---------------------------------------------------
+assert(generatePromptPack(null).length === 0, 'prompt pack empty without blueprint')
+const packBp = generateBlueprint(TECH_FOUNDER_DEMO)
+const pack = generatePromptPack(packBp)
+assert(pack.length >= 5, 'prompt pack has multiple prompts')
+assert(pack.every((p) => p.id && p.title && p.prompt && p.prompt.length > 50), 'each prompt is well-formed')
+assert(pack.every((p) => p.prompt.includes(packBp.concept.productName)), 'prompts are personalized with the product name')
+assert(typeof promptPackToMarkdown(packBp) === 'string' && promptPackToMarkdown(packBp).includes('Prompt Pack'), 'prompt pack exports markdown')
+
+// --- summary --------------------------------------------------------------
+console.log(`\n${checks} checks run.`)
+if (fails === 0) {
+  console.log('✅ ALL PASS')
+  process.exit(0)
+} else {
+  console.log(`❌ ${fails} FAILURE(S)`)
+  process.exit(1)
+}

@@ -3,8 +3,8 @@ import React from 'react'
 export function Card({ className = '', strong = false, children, glow = false }) {
   return (
     <div
-      className={`${strong ? 'glass-strong' : 'glass'} p-5 sm:p-6 transition-all duration-300 ${
-        glow ? 'hover:shadow-glow' : 'hover:border-white/20'
+      className={`${strong ? 'glass-strong' : 'glass'} card-hover p-5 sm:p-6 ${
+        glow ? 'hover:border-emerald-400/30 hover:shadow-glow' : 'hover:border-white/20'
       } ${className}`}
     >
       {children}
@@ -31,26 +31,39 @@ export function Badge({ children, color = 'emerald', className = '' }) {
 
 export function Button({ children, variant = 'primary', className = '', icon: Icon, ...props }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-400/50'
+    'group/btn relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-400/50'
   const variants = {
     primary:
-      'bg-gradient-to-r from-emerald-500 to-violet-500 text-white shadow-glow hover:brightness-110 hover:shadow-glow-violet active:scale-[.98]',
-    ghost: 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:border-white/20',
+      'bg-gradient-to-r from-emerald-500 to-violet-500 text-white shadow-glow hover:brightness-110 hover:shadow-glow-violet hover:-translate-y-0.5 active:translate-y-0 active:scale-[.98]',
+    ghost: 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:border-white/25 hover:-translate-y-0.5 active:translate-y-0',
     subtle: 'bg-white/5 text-slate-300 hover:bg-white/10',
     danger: 'border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20',
   }
   return (
     <button className={`${base} ${variants[variant]} ${className}`} {...props}>
-      {Icon && <Icon className="h-4 w-4" />}
-      {children}
+      {variant === 'primary' && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover/btn:translate-x-full"
+        />
+      )}
+      {Icon && <Icon className="relative h-4 w-4" />}
+      {children && <span className="relative">{children}</span>}
     </button>
   )
 }
 
-export function ProgressBar({ value, max = 100, className = '', gradient = true }) {
+export function ProgressBar({ value, max = 100, className = '', gradient = true, label }) {
   const pct = Math.min(100, Math.round((value / max) * 100)) || 0
   return (
-    <div className={`h-2.5 w-full overflow-hidden rounded-full bg-white/10 ${className}`}>
+    <div
+      className={`h-2.5 w-full overflow-hidden rounded-full bg-white/10 ${className}`}
+      role="progressbar"
+      aria-valuenow={pct}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={label}
+    >
       <div
         className={`h-full rounded-full transition-all duration-500 ${
           gradient ? 'bg-gradient-to-r from-emerald-400 to-violet-400' : 'bg-emerald-400'
@@ -136,6 +149,24 @@ export function EmptyState({ icon: Icon, title, children, action }) {
   )
 }
 
+export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
+  if (!open) return null
+  return (
+    <div className="no-print fixed inset-0 z-50 grid place-items-center p-4">
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={onClose} />
+      <div className={`glass-strong relative w-full ${maxWidth} max-h-[85vh] overflow-y-auto animate-fade-up p-5 sm:p-6`}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+          <button onClick={onClose} aria-label="Close dialog" className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-slate-200">
+            <span className="text-xl leading-none" aria-hidden="true">×</span>
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // Circular score gauge
 export function ScoreRing({ score = 0, size = 132 }) {
   const stroke = 11
@@ -144,8 +175,13 @@ export function ScoreRing({ score = 0, size = 132 }) {
   const offset = c - (score / 100) * c
   const color = score >= 75 ? '#10b981' : score >= 55 ? '#8b5cf6' : '#f59e0b'
   return (
-    <div className="relative grid place-items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <div
+      className="relative grid place-items-center"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`Score ${score} percent`}
+    >
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}
