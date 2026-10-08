@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   LayoutDashboard, Inbox, BrainCircuit, Map, LineChart, MapPin, Workflow, GitCompare, FolderOpen,
-  Moon, Sun, Sparkles, HelpCircle, Eye, Wallet, Stethoscope,
+  Moon, Sun, Sparkles, HelpCircle, Eye, Wallet, Stethoscope, Target,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 
@@ -10,6 +10,7 @@ const NAV = [
   { id: 'intake', label: 'Intake', full: 'Intake', icon: Inbox },
   { id: 'blueprint', label: 'Blueprint', full: 'Blueprint', icon: BrainCircuit },
   { id: 'roadmap', label: 'Roadmap', full: 'Roadmap', icon: Map },
+  { id: 'goals', label: 'Goals', full: 'Goals', icon: Target },
   { id: 'planner', label: 'Plan', full: 'Launch Plan', icon: Wallet },
   { id: 'financials', label: 'Finance', full: 'Financials', icon: LineChart },
   { id: 'finder', label: 'Finder', full: 'Finder', icon: MapPin },

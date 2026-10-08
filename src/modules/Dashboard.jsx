@@ -8,6 +8,7 @@ import { Card, Badge, Button, ProgressBar, EmptyState, ScoreRing } from '../comp
 import { money } from '../engine/blueprintEngine.js'
 import { readinessScore, readinessBand, nextActions, topProspects, roadmapStats, pipelineFunnel } from '../engine/insights.js'
 import { attentionItems } from '../engine/execution.js'
+import { goalsSummary } from '../engine/goals.js'
 
 export default function Dashboard() {
   const { activeBlueprint: bp, prospects, savedBlueprints, setTab, toggleTask } = useApp()
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const { done, total, pct } = roadmapStats(bp)
   const funnel = pipelineFunnel(prospects, bp.id)
   const attention = attentionItems(bp, { prospects, savedBlueprints })
+  const goals = goalsSummary(bp.goals || [], { bp, prospects })
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-up space-y-6">
@@ -64,7 +66,13 @@ export default function Dashboard() {
           <MiniStat icon={Gauge} label="Roadmap" value={`${pct}%`} sub={`${done}/${total} tasks done`} onClick={() => setTab('roadmap')} />
           <MiniStat icon={Building2} label="Pipeline" value={funnel.total} sub={`${funnel.counts.Won} won · ${funnel.counts.Contacted + funnel.counts.Replied} active`} onClick={() => setTab('pipeline')} />
           <MiniStat icon={TrendingUp} label="Year-1 proj." value={money(bp.currency, bp.economics.year1Gross)} sub={`break-even mo. ${bp.economics.breakeven}`} onClick={() => setTab('financials')} />
-          <MiniStat icon={Target} label="Fit score" value={`${bp.fitScore}%`} sub={`${savedBlueprints.length} saved enterprise${savedBlueprints.length === 1 ? '' : 's'}`} onClick={() => setTab('blueprint')} />
+          <MiniStat
+            icon={Target}
+            label="Goals"
+            value={goals.count ? `${goals.avgPct}%` : `${bp.fitScore}%`}
+            sub={goals.count ? `${goals.achieved}/${goals.count} achieved` : 'set your first target'}
+            onClick={() => setTab('goals')}
+          />
         </div>
       </div>
 

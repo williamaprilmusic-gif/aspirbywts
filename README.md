@@ -16,6 +16,7 @@
 - **📁 Saved Enterprises** — persist multiple blueprint iterations in `localStorage`, reload, export, or delete. Full-**workspace backup / restore**: export everything (blueprints, pipeline, evaluation) to a JSON file and import it on any device, with merge or replace.
 
 - **💷 Launch Plan (execution accountability)** — a **capital allocator** that splits your working capital across model-specific buckets with a live runway counter vs. projected break-even, and a **validation scorecard** to track your riskiest assumptions (demand, pricing, channel, retention) with evidence and a validation % that feeds your readiness score.
+- **🎯 Goals & Targets (scoreboard)** — set concrete targets (customers won, revenue, roadmap completion, assumptions validated, a launch date, or any custom metric); progress auto-pulls from the pipeline, roadmap, and validation where possible, with avg-progress / achieved totals surfaced on the Dashboard and overdue dates flagged in the attention feed.
 - **📅 Dated & gated roadmap** — set a launch start date and each phase shows its target window; phases soft-gate until the prior one is 60%+ done, with on-track / behind signals.
 
 Plus: **scenario / what-if sliders** on the financial model (price, churn, CAC, acquisition pace → live projection & break-even), a generated **competitive landscape** (positioning map + your wedge) on each blueprint, **PDF/print export**, **shareable read-only links** (blueprint encoded in the URL), and a **first-run onboarding tour** (replayable from the header).

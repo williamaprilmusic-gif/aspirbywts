@@ -9,6 +9,7 @@ import Dashboard from './modules/Dashboard.jsx'
 import Intake from './modules/Intake.jsx'
 import Blueprint from './modules/Blueprint.jsx'
 import Roadmap from './modules/Roadmap.jsx'
+import Goals from './modules/Goals.jsx'
 import Financials from './modules/Financials.jsx'
 import Planner from './modules/Planner.jsx'
 import Finder from './modules/Finder.jsx'
@@ -38,6 +39,7 @@ export default function App() {
         {tab === 'intake' && <Intake />}
         {tab === 'blueprint' && <Blueprint />}
         {tab === 'roadmap' && <Roadmap />}
+        {tab === 'goals' && <Goals />}
         {tab === 'financials' && <Financials />}
         {tab === 'planner' && <Planner />}
         {tab === 'finder' && <Finder />}

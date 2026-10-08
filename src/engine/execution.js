@@ -232,6 +232,16 @@ export function attentionItems(bp, { prospects = [], savedBlueprints = [] } = {}
     if (stale > 0) push('medium', 'stale', `${stale} prospect${stale === 1 ? '' : 's'} with no movement in 7+ days — follow up.`, 'pipeline')
   }
 
+  // Overdue date goals
+  const overdueGoals = (bp.goals || []).filter((g) => {
+    if (g.kind !== 'date' || g.done || !g.targetDate) return false
+    const end = new Date(g.targetDate).getTime()
+    return !isNaN(end) && end < Date.now()
+  }).length
+  if (overdueGoals > 0) {
+    push('high', 'goal', `${overdueGoals} goal${overdueGoals === 1 ? '' : 's'} past the target date — review or reset.`, 'goals')
+  }
+
   const rank = { high: 0, medium: 1, low: 2 }
   return items.sort((a, b) => rank[a.severity] - rank[b.severity]).slice(0, 6)
 }

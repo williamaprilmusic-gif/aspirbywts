@@ -21,6 +21,7 @@ import {
 } from '../src/engine/evaluation.js'
 import { buildBackup, parseBackup, mergeBy } from '../src/engine/backup.js'
 import { attentionItems, getBudget } from '../src/engine/execution.js'
+import { GOAL_KIND_LIST, defaultGoal, computeGoal, goalsSummary } from '../src/engine/goals.js'
 import { blueprintToMarkdown } from '../src/engine/exporters.js'
 import { TECH_FOUNDER_DEMO, CONSULTANT_DEMO, EMPTY_INTAKE } from '../src/engine/presets.js'
 
@@ -168,6 +169,38 @@ const handled = { ...freshBp, startDate: '2999-01-01' }
 handled.validation = freshBp.validation // undefined ok
 const attn2 = attentionItems(handled, { prospects: [], savedBlueprints: [handled] })
 assert(!attn2.some((a) => a.kind === 'save'), 'saved blueprint not flagged for saving')
+
+// --- 13. Goals & targets --------------------------------------------------
+const goalBp = generateBlueprint(TECH_FOUNDER_DEMO)
+for (const kind of GOAL_KIND_LIST) {
+  const g = defaultGoal(kind)
+  const c = computeGoal(g, { bp: goalBp, prospects: [] })
+  assert(c.pct >= 0 && c.pct <= 100, `goal ${kind} pct in 0–100`)
+}
+// customers auto-pulls Won prospects
+const wonCtx = { bp: goalBp, prospects: [
+  { blueprintId: goalBp.id, status: 'Won' }, { blueprintId: goalBp.id, status: 'Won' }, { blueprintId: goalBp.id, status: 'Saved' },
+] }
+const custGoal = { ...defaultGoal('customers'), target: 4 }
+assert(computeGoal(custGoal, wonCtx).value === 2, 'customers goal counts Won prospects')
+assert(computeGoal(custGoal, wonCtx).pct === 50, 'customers goal pct = 2/4')
+// roadmap auto = 0% initially
+assert(computeGoal(defaultGoal('roadmap'), { bp: goalBp, prospects: [] }).pct === 0, 'roadmap goal starts 0%')
+// manual revenue
+const revGoal = { ...defaultGoal('revenue'), target: 1000, current: 500 }
+assert(computeGoal(revGoal, { bp: goalBp, prospects: [] }).pct === 50, 'manual revenue goal pct = 500/1000')
+// date goal: overdue in the past, not done
+const pastGoal = { ...defaultGoal('date'), targetDate: '2000-01-01' }
+assert(computeGoal(pastGoal, { bp: goalBp, prospects: [] }).overdue === true, 'past date goal is overdue')
+const futureGoal = { ...defaultGoal('date'), targetDate: '2999-01-01' }
+assert(computeGoal(futureGoal, { bp: goalBp, prospects: [] }).overdue === false, 'future date goal not overdue')
+// done overrides
+assert(computeGoal({ ...pastGoal, done: true }, { bp: goalBp, prospects: [] }).pct === 100, 'done goal is 100%')
+// summary + attention hook
+const sum = goalsSummary([custGoal, revGoal], wonCtx)
+assert(sum.count === 2 && sum.avgPct >= 0 && sum.avgPct <= 100, 'goalsSummary well-formed')
+const bpWithOverdue = { ...goalBp, goals: [pastGoal] }
+assert(attentionItems(bpWithOverdue, { prospects: [], savedBlueprints: [bpWithOverdue] }).some((a) => a.kind === 'goal'), 'overdue goal surfaces in attention feed')
 
 // --- summary --------------------------------------------------------------
 console.log(`\n${checks} checks run.`)
