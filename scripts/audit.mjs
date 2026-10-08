@@ -23,6 +23,7 @@ import { buildBackup, parseBackup, mergeBy } from '../src/engine/backup.js'
 import { attentionItems, getBudget } from '../src/engine/execution.js'
 import { GOAL_KIND_LIST, defaultGoal, computeGoal, goalsSummary } from '../src/engine/goals.js'
 import { getStartedSteps, nextStep } from '../src/engine/guide.js'
+import { generatePromptPack, promptPackToMarkdown } from '../src/engine/prompts.js'
 import { blueprintToMarkdown } from '../src/engine/exporters.js'
 import { TECH_FOUNDER_DEMO, CONSULTANT_DEMO, EMPTY_INTAKE } from '../src/engine/presets.js'
 
@@ -225,6 +226,15 @@ const full = nextStep({
 })
 assert(full.allDone === true && full.current === null, 'guide completes when all steps satisfied')
 assert(getStartedSteps({ activeBlueprint: null }).every((s) => s.tab && s.cta && s.label), 'every step well-formed')
+
+// --- 15. AI prompt pack ---------------------------------------------------
+assert(generatePromptPack(null).length === 0, 'prompt pack empty without blueprint')
+const packBp = generateBlueprint(TECH_FOUNDER_DEMO)
+const pack = generatePromptPack(packBp)
+assert(pack.length >= 5, 'prompt pack has multiple prompts')
+assert(pack.every((p) => p.id && p.title && p.prompt && p.prompt.length > 50), 'each prompt is well-formed')
+assert(pack.every((p) => p.prompt.includes(packBp.concept.productName)), 'prompts are personalized with the product name')
+assert(typeof promptPackToMarkdown(packBp) === 'string' && promptPackToMarkdown(packBp).includes('Prompt Pack'), 'prompt pack exports markdown')
 
 // --- summary --------------------------------------------------------------
 console.log(`\n${checks} checks run.`)

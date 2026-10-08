@@ -11,6 +11,7 @@
 - **📊 Financial & Risk Modeling** — CAC, LTV, LTV:CAC, break-even, gross margin, a 12-month revenue projection chart, monthly breakdown table, pricing tiers, and a risk mitigation matrix.
 - **📍 Client & Company Finder** — enter a **city and country** (pre-filled from your blueprint's industry/model) to generate a ranked list of target companies/clients, each with the best contact role, a buying signal, a fit reason, and a tailored outreach angle. **One-click outreach generator** drafts a cold email, DM, and follow-up in your voice (copy to clipboard). Save prospects to your pipeline; filter by Hot/Warm/Nurture; export CSV.
 - **🔁 Prospect Pipeline** — track saved prospects through Saved → Contacted → Replied → Won/Lost with a visual funnel, per-prospect notes, inline outreach, and conversion stats.
+- **🪄 AI Prompt Pack** — one click turns your blueprint into ready-to-paste prompts (landing page, sales script, content hooks, cold-email sequence, brand kit, plan review) for any AI assistant.
 - **🩺 Business Evaluation (health check)** — rate an existing business across 8 weighted dimensions (product, marketing, sales, finance, customer, operations, team, growth); get an overall health score, strengths vs. weakest areas, and a prioritized list of concrete improvement ideas you can **push straight into the roadmap** as tasks. Save snapshots to track the score over time; export as Markdown.
 - **⚖️ Compare Enterprises** — select up to 4 blueprints and compare fit, Year-1 revenue, CAC, LTV, break-even, and more side by side, with a weighted engine recommendation of which to build.
 - **📁 Saved Enterprises** — persist multiple blueprint iterations in `localStorage`, reload, export, or delete. Full-**workspace backup / restore**: export everything (blueprints, pipeline, evaluation) to a JSON file and import it on any device, with merge or replace.
@@ -40,6 +41,23 @@ npm run preview  # preview the production build
 ```
 
 The analytical engine (`src/engine/blueprintEngine.js`) is fully deterministic — no network calls — so blueprints generate instantly and reproducibly.
+
+## Deploy
+
+The app is a static SPA (Vite build → `dist/`), so it hosts anywhere. Asset paths
+are relative (`base: './'`), so it also works from a subpath (e.g. GitHub Pages).
+
+- **Netlify** — connect the repo; `netlify.toml` sets build `npm run build` + publish `dist` with an SPA fallback. Or drag-and-drop the `dist/` folder.
+- **Vercel** — import the repo; `vercel.json` sets the Vite build, output, and rewrites.
+- **GitHub Pages** — the workflow at `.github/workflows/deploy-pages.yml` builds and publishes on every push to `main`. Enable it once under **Settings → Pages → Source: GitHub Actions**.
+- **Any static host / S3 / Cloudflare Pages** — run `npm run build` and upload the `dist/` folder.
+
+## AI Prompt Pack
+
+From the Blueprint tab, **AI prompts** opens a pack of ready-to-paste prompts
+(landing page, sales script, content hooks, cold-email sequence, brand kit, plan
+review) pre-filled with your blueprint — copy one into any AI assistant, or
+download them all as Markdown.
 
 ## Architecture
 

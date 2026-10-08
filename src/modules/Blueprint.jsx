@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
 import {
   BrainCircuit, Save, Download, FileText, Target, Shield, TrendingUp, Megaphone,
-  Rocket, Zap, AlertTriangle, Lightbulb, Gem, ArrowRight, Swords, Printer, Share2, Crosshair,
+  Rocket, Zap, AlertTriangle, Lightbulb, Gem, ArrowRight, Swords, Printer, Share2, Crosshair, Wand2, Copy,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
-import { Card, Badge, Button, ScoreRing, EmptyState, Stat } from '../components/ui.jsx'
+import { Card, Badge, Button, ScoreRing, EmptyState, Stat, Modal } from '../components/ui.jsx'
 import { money } from '../engine/blueprintEngine.js'
 import { blueprintToMarkdown, downloadText, slugify, copyToClipboard } from '../engine/exporters.js'
 import { generateCompetitors } from '../engine/competitors.js'
+import { generatePromptPack, promptPackToMarkdown } from '../engine/prompts.js'
 import { buildShareUrl } from '../engine/share.js'
 
 const EXEC_TABS = [
@@ -20,6 +21,7 @@ const EXEC_TABS = [
 export default function Blueprint() {
   const { activeBlueprint: bp, saveActive, setTab, notify, readOnly } = useApp()
   const [exec, setExec] = useState('summary')
+  const [showPrompts, setShowPrompts] = useState(false)
 
   if (!bp) {
     return (
@@ -68,6 +70,7 @@ export default function Blueprint() {
               <Button variant="ghost" icon={Printer} onClick={printPdf}>Export PDF</Button>
               <Button variant="ghost" icon={Download} onClick={exportMd}>Markdown</Button>
               {!readOnly && <Button variant="ghost" icon={Share2} onClick={shareLink}>Share link</Button>}
+              <Button variant="ghost" icon={Wand2} onClick={() => setShowPrompts(true)}>AI prompts</Button>
               <Button variant="ghost" icon={Rocket} onClick={() => setTab('roadmap')}>Roadmap</Button>
             </div>
           </div>
@@ -118,6 +121,8 @@ export default function Blueprint() {
           <SwotQuadrant title="Threats" color="amber" icon={Shield} items={bp.swot.threats} />
         </div>
       </Card>
+
+      <PromptPackModal bp={bp} open={showPrompts} onClose={() => setShowPrompts(false)} notify={notify} />
 
       {/* Competitive landscape */}
       {competitors && <CompetitorSnapshot data={competitors} />}
@@ -264,6 +269,43 @@ function SwotQuadrant({ title, items, color, icon: Icon }) {
         ))}
       </ul>
     </div>
+  )
+}
+
+function PromptPackModal({ bp, open, onClose, notify }) {
+  if (!open) return null
+  const pack = generatePromptPack(bp)
+  const copy = async (text, title) => {
+    const ok = await copyToClipboard(text)
+    notify(ok ? `${title} prompt copied` : 'Copy failed', ok ? 'success' : 'info')
+  }
+  const downloadAll = () => {
+    downloadText(`${slugify(bp.concept.productName)}-ai-prompts.md`, promptPackToMarkdown(bp))
+    notify('Prompt pack downloaded')
+  }
+  return (
+    <Modal open={open} onClose={onClose} title="AI Prompt Pack" maxWidth="max-w-2xl">
+      <p className="mb-4 text-sm text-slate-400">
+        Ready-to-paste prompts, pre-filled with your blueprint. Drop any one into your favourite AI assistant to generate
+        the real asset.
+      </p>
+      <div className="mb-4">
+        <Button variant="ghost" icon={Copy} onClick={downloadAll}>Download all as Markdown</Button>
+      </div>
+      <div className="space-y-3">
+        {pack.map((p) => (
+          <div key={p.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-semibold text-slate-200">{p.title}</span>
+              <button onClick={() => copy(p.prompt, p.title)} className="flex items-center gap-1 text-xs text-emerald-300 hover:text-emerald-200">
+                <Copy className="h-3 w-3" /> Copy
+              </button>
+            </div>
+            <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-slate-400">{p.prompt}</pre>
+          </div>
+        ))}
+      </div>
+    </Modal>
   )
 }
 
