@@ -29,13 +29,28 @@ export function buildOverpassQuery(lat, lon, radius = 12000) {
 out tags center 200;`
 }
 
-// Turn raw Overpass elements into ranked, de-duplicated company records.
-export function mapElements(elements = [], { industry = '', location = '' } = {}) {
-  const keywords = industry
+// Words too generic to be useful for industry matching — they appear in
+// company names of every sector ("… Group", "… Services") or are the overly
+// broad half of a phrase ("call CENTRE" also matches "shopping centre").
+const STOPWORDS = new Set([
+  'centre', 'center', 'group', 'services', 'service', 'company', 'co', 'ltd',
+  'pty', 'inc', 'llc', 'the', 'and', 'of', 'solutions', 'systems', 'business',
+  'enterprise', 'enterprises', 'holdings', 'international', 'global', 'local',
+])
+
+export function industryKeywords(industry = '') {
+  return industry
     .toLowerCase()
-    .split(/[\s,;/]+/)
+    .split(/[\s,;/&]+/)
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter((s) => s.length >= 2 && !STOPWORDS.has(s))
+}
+
+// Turn raw Overpass elements into ranked, de-duplicated company records.
+// When an industry is given, `relevance` counts whole-word keyword hits so the
+// caller can filter to real matches rather than merely re-ordering everything.
+export function mapElements(elements = [], { industry = '', location = '' } = {}) {
+  const keywords = industryKeywords(industry)
 
   const seen = new Set()
   const out = []
@@ -54,8 +69,14 @@ export function mapElements(elements = [], { industry = '', location = '' } = {}
     const address = [t['addr:housenumber'], t['addr:street'], t['addr:suburb'], t['addr:city']]
       .filter(Boolean)
       .join(' ')
-    const haystack = `${name} ${kind} ${t.description || ''}`.toLowerCase()
-    const matches = keywords.filter((k) => haystack.includes(k)).length
+    // Whole-word match against name, the OSM category tags, and the description.
+    const tokens = new Set(
+      `${name} ${kind} ${t.office || ''} ${t.shop || ''} ${t.craft || ''} ${t.industry || ''} ${t.description || ''}`
+        .toLowerCase()
+        .split(/[\s,;/&_-]+/)
+        .filter(Boolean),
+    )
+    const matches = keywords.filter((k) => tokens.has(k)).length
     const lat = el.lat ?? el.center?.lat
     const lon = el.lon ?? el.center?.lon
 
@@ -139,6 +160,14 @@ export async function findRealCompanies({ city = '', country = '', industry = ''
   const query = buildOverpassQuery(geo.lat, geo.lon, 14000)
   const data = await overpass(query)
   const location = [city, country].filter(Boolean).join(', ')
-  const companies = mapElements(data.elements || [], { industry, location }).slice(0, limit)
-  return { location, lat: geo.lat, lon: geo.lon, companies }
+  const all = mapElements(data.elements || [], { industry, location })
+
+  // If an industry was given and anything actually matches it, show only those
+  // — never pad the list with unrelated businesses (malls, NGOs, …).
+  const hasIndustry = industryKeywords(industry).length > 0
+  const matched = all.filter((c) => c.relevance > 0)
+  const filtered = hasIndustry && matched.length > 0
+  const companies = (filtered ? matched : all).slice(0, limit)
+
+  return { location, lat: geo.lat, lon: geo.lon, companies, filtered, matchedCount: matched.length }
 }

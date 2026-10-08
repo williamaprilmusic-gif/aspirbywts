@@ -63,11 +63,18 @@ export default function Finder() {
     setLiveError('')
     try {
       const res = await findRealCompanies({ city, country, industry, limit: Number(count) })
-      if (res.companies.length > 0) {
+      const industryGiven = industry.trim().length > 0
+      if (res.companies.length > 0 && (!industryGiven || res.filtered)) {
         setCompanies(res.companies)
-        setLiveMeta({ location: res.location, lat: res.lat, lon: res.lon })
+        setLiveMeta({ location: res.location, lat: res.lat, lon: res.lon, filtered: res.filtered })
         setMode('live')
-        notify(`${res.companies.length} real companies found in ${res.location}`)
+        notify(`${res.companies.length} real ${res.filtered ? industry.trim() + ' ' : ''}companies found in ${res.location}`)
+      } else if (res.companies.length > 0 && industryGiven && !res.filtered) {
+        // Businesses exist nearby, but none are tagged as this industry.
+        setLiveError(`No "${industry.trim()}" businesses are tagged in OpenStreetMap around ${res.location}, so we won't show unrelated ones.`)
+        setSearchResult(buildFallback())
+        setMode('search')
+        notify(`No "${industry.trim()}" listings there — showing ready-to-run searches instead`, 'info')
       } else {
         setLiveError(`No businesses are listed in OpenStreetMap for ${res.location} yet.`)
         setSearchResult(buildFallback())
