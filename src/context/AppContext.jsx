@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState, useCall
 import { EMPTY_INTAKE } from '../engine/presets.js'
 import { generateBlueprint } from '../engine/blueprintEngine.js'
 import { readSharedFromUrl } from '../engine/share.js'
+import { buildBackup, parseBackup, mergeBy } from '../engine/backup.js'
 
 const AppContext = createContext(null)
 
@@ -238,6 +239,37 @@ export function AppProvider({ children }) {
   const markTourSeen = useCallback(() => setTourSeen(true), [])
   const restartTour = useCallback(() => setTourSeen(false), [])
 
+  // ---- Workspace backup / restore ----
+  const exportWorkspace = useCallback(
+    () => buildBackup({ savedBlueprints, prospects, evaluation, evalSnapshots }),
+    [savedBlueprints, prospects, evaluation, evalSnapshots],
+  )
+
+  const importWorkspace = useCallback(
+    (text, mode = 'merge') => {
+      const res = parseBackup(text)
+      if (!res.ok) {
+        notify(res.error, 'info')
+        return res
+      }
+      const { data } = res
+      if (mode === 'replace') {
+        setSavedBlueprints(data.blueprints)
+        setProspects(data.prospects)
+        setEvaluation(data.evaluation)
+        setEvalSnapshots(data.evalSnapshots)
+      } else {
+        setSavedBlueprints((prev) => mergeBy(prev, data.blueprints, 'id'))
+        setProspects((prev) => mergeBy(prev, data.prospects, 'key'))
+        setEvaluation((prev) => (Object.keys(data.evaluation).length ? { ...prev, ...data.evaluation } : prev))
+        setEvalSnapshots((prev) => [...prev, ...data.evalSnapshots].slice(-24))
+      }
+      notify(`Imported ${data.blueprints.length} blueprint(s), ${data.prospects.length} prospect(s)`)
+      return res
+    },
+    [notify],
+  )
+
   // ---- Business evaluation ----
   const setEvalAnswer = useCallback((id, value) => {
     setEvaluation((prev) => ({ ...prev, [id]: value }))
@@ -292,6 +324,8 @@ export function AppProvider({ children }) {
       resetEvaluation,
       evalSnapshots,
       saveEvalSnapshot,
+      exportWorkspace,
+      importWorkspace,
     }),
     [
       intake,
@@ -326,6 +360,8 @@ export function AppProvider({ children }) {
       resetEvaluation,
       evalSnapshots,
       saveEvalSnapshot,
+      exportWorkspace,
+      importWorkspace,
     ],
   )
 

@@ -180,3 +180,58 @@ export function getBudget(bp) {
 export function getValidation(bp) {
   return bp.validation && bp.validation.length ? bp.validation : defaultValidation(bp)
 }
+
+// ---------------------------------------------------------------------------
+//  Attention feed — ranked "what needs you" items for the Dashboard
+// ---------------------------------------------------------------------------
+const DAY = 24 * 60 * 60 * 1000
+
+export function attentionItems(bp, { prospects = [], savedBlueprints = [] } = {}) {
+  if (!bp) return []
+  const items = []
+  const push = (severity, kind, text, tab) => items.push({ severity, kind, text, tab })
+
+  // Unsaved blueprint
+  if (!savedBlueprints.some((b) => b.id === bp.id)) {
+    push('medium', 'save', 'Save this blueprint so it persists across sessions.', 'blueprint')
+  }
+
+  // Milestones
+  if (!bp.startDate) {
+    push('medium', 'date', 'Set a launch start date to activate milestone tracking.', 'roadmap')
+  } else {
+    bp.roadmap.forEach((phase) => {
+      if (phaseStatus(bp.startDate, phase).label === 'Behind') {
+        push('high', 'behind', `${phase.title} is behind schedule — catch up or re-plan.`, 'roadmap')
+      }
+    })
+  }
+
+  // Runway vs break-even
+  const budget = getBudget(bp)
+  const { runway } = budgetStats(budget)
+  if (budget.monthlyBurn > 0 && typeof bp.economics.breakeven === 'number' && runway < bp.economics.breakeven) {
+    push('high', 'runway', `Runway (${runway} mo) is shorter than projected break-even (month ${bp.economics.breakeven}).`, 'planner')
+  }
+
+  // Untested validation
+  const untested = getValidation(bp).filter((v) => v.status === 'untested').length
+  if (untested > 0) {
+    push('medium', 'validation', `${untested} key assumption${untested === 1 ? '' : 's'} still untested — validate before you scale.`, 'planner')
+  }
+
+  // Pipeline
+  const mine = prospects.filter((p) => p.blueprintId === bp.id)
+  if (mine.length === 0) {
+    push('medium', 'prospects', 'No saved prospects yet — find your first targets.', 'finder')
+  } else {
+    const now = Date.now()
+    const stale = mine.filter(
+      (p) => ['Saved', 'Contacted', 'Replied'].includes(p.status) && p.savedAt && now - new Date(p.savedAt).getTime() > 7 * DAY,
+    ).length
+    if (stale > 0) push('medium', 'stale', `${stale} prospect${stale === 1 ? '' : 's'} with no movement in 7+ days — follow up.`, 'pipeline')
+  }
+
+  const rank = { high: 0, medium: 1, low: 2 }
+  return items.sort((a, b) => rank[a.severity] - rank[b.severity]).slice(0, 6)
+}

@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
-  Stethoscope, Lightbulb, TrendingUp, TrendingDown, Download, Save, RotateCcw, CheckCircle2, AlertTriangle, History,
+  Stethoscope, Lightbulb, TrendingUp, TrendingDown, Download, Save, RotateCcw, CheckCircle2, AlertTriangle, History, ListPlus, Check,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, ProgressBar, ScoreRing } from '../components/ui.jsx'
@@ -13,10 +13,23 @@ const SEV_COLOR = { High: 'rose', Medium: 'amber' }
 const RATING_LABELS = ['', 'Poor', 'Weak', 'Okay', 'Good', 'Excellent']
 
 export default function Evaluate() {
-  const { evaluation, setEvalAnswer, resetEvaluation, evalSnapshots, saveEvalSnapshot, activeBlueprint, notify } = useApp()
+  const { evaluation, setEvalAnswer, resetEvaluation, evalSnapshots, saveEvalSnapshot, activeBlueprint, addTask, setTab, notify } = useApp()
+  const [added, setAdded] = useState({})
 
   const res = scoreEvaluation(evaluation)
   const recs = recommendations(evaluation, 8)
+
+  // Push an improvement idea into the active blueprint's roadmap (Phase 1)
+  const sendToRoadmap = (rec, idx) => {
+    if (!activeBlueprint) {
+      notify('Open or generate a blueprint first to add roadmap tasks', 'info')
+      return
+    }
+    const firstPhase = activeBlueprint.roadmap[0]?.id || 'p1'
+    addTask(firstPhase, `[${rec.dimensionLabel}] ${rec.fix}`)
+    setAdded((a) => ({ ...a, [idx]: true }))
+    notify('Added to roadmap (Phase 1)')
+  }
 
   const exportMd = () => {
     downloadText('business-evaluation.md', evaluationToMarkdown(evaluation, { name: activeBlueprint?.concept?.productName }))
@@ -145,6 +158,13 @@ export default function Evaluate() {
                     <span className="text-xs text-slate-500">{r.dimensionLabel}</span>
                   </div>
                   <div className="text-sm text-slate-300">{r.fix}</div>
+                </div>
+                <div className="shrink-0">
+                  {added[i] ? (
+                    <Button variant="subtle" icon={Check} disabled>Added</Button>
+                  ) : (
+                    <Button variant="ghost" icon={ListPlus} onClick={() => sendToRoadmap(r, i)}>To roadmap</Button>
+                  )}
                 </div>
               </div>
             ))}

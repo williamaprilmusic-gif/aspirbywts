@@ -1,11 +1,13 @@
 import React from 'react'
 import {
   LayoutDashboard, Sparkles, CheckCircle2, Circle, Flame, ArrowRight, Rocket, Gauge, Target, Building2, TrendingUp,
+  Bell, ChevronRight,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, ProgressBar, EmptyState, ScoreRing } from '../components/ui.jsx'
 import { money } from '../engine/blueprintEngine.js'
 import { readinessScore, readinessBand, nextActions, topProspects, roadmapStats, pipelineFunnel } from '../engine/insights.js'
+import { attentionItems } from '../engine/execution.js'
 
 export default function Dashboard() {
   const { activeBlueprint: bp, prospects, savedBlueprints, setTab, toggleTask } = useApp()
@@ -29,6 +31,7 @@ export default function Dashboard() {
   const hot = topProspects(bp, prospects, 3)
   const { done, total, pct } = roadmapStats(bp)
   const funnel = pipelineFunnel(prospects, bp.id)
+  const attention = attentionItems(bp, { prospects, savedBlueprints })
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-up space-y-6">
@@ -64,6 +67,35 @@ export default function Dashboard() {
           <MiniStat icon={Target} label="Fit score" value={`${bp.fitScore}%`} sub={`${savedBlueprints.length} saved enterprise${savedBlueprints.length === 1 ? '' : 's'}`} onClick={() => setTab('blueprint')} />
         </div>
       </div>
+
+      {/* Attention feed */}
+      <Card>
+        <div className="mb-3 flex items-center gap-2">
+          <Bell className="h-5 w-5 text-amber-400" />
+          <h2 className="font-semibold text-slate-100">Needs your attention</h2>
+          {attention.length > 0 && <Badge color="amber">{attention.length}</Badge>}
+        </div>
+        {attention.length ? (
+          <ul className="space-y-2">
+            {attention.map((a, i) => (
+              <li key={i}>
+                <button
+                  onClick={() => setTab(a.tab)}
+                  className="group flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2.5 text-left transition hover:border-white/15"
+                >
+                  <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${a.severity === 'high' ? 'bg-rose-400' : 'bg-amber-400'}`} />
+                  <span className="flex-1 text-sm text-slate-200">{a.text}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-slate-300" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-200">
+            <CheckCircle2 className="h-4 w-4" /> All clear — nothing urgent. Keep executing.
+          </div>
+        )}
+      </Card>
 
       {/* This week's moves + hot prospects */}
       <div className="grid gap-6 lg:grid-cols-2">

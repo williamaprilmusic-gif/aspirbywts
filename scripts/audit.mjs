@@ -19,6 +19,8 @@ import { encodeBlueprint, decodeBlueprint } from '../src/engine/share.js'
 import {
   EVAL_DIMENSIONS, EVAL_QUESTIONS, defaultEvalAnswers, scoreEvaluation, recommendations, evaluationToMarkdown,
 } from '../src/engine/evaluation.js'
+import { buildBackup, parseBackup, mergeBy } from '../src/engine/backup.js'
+import { attentionItems, getBudget } from '../src/engine/execution.js'
 import { blueprintToMarkdown } from '../src/engine/exporters.js'
 import { TECH_FOUNDER_DEMO, CONSULTANT_DEMO, EMPTY_INTAKE } from '../src/engine/presets.js'
 
@@ -140,6 +142,32 @@ assert(lowRes.weaknesses.length > 0, 'weak areas surfaced when all low')
 assert(recommendations(allLow).every((r) => r.severity === 'High'), 'all-low recs are High priority')
 assert(scoreEvaluation({}).overall === 60, 'empty answers fall back to neutral')
 assert(typeof evaluationToMarkdown(allLow) === 'string', 'evaluation exports markdown')
+
+// --- 11. Backup / restore round-trip -------------------------------------
+const backup = buildBackup({ savedBlueprints: [bpg], prospects: [{ key: 'k1', name: 'Acme', status: 'Saved' }], evaluation: { 'product-1': 5 }, evalSnapshots: [] })
+assert(backup.app === 'aspir-by-wts' && backup.version >= 1, 'backup has app + version')
+const parsed = parseBackup(JSON.stringify(backup))
+assert(parsed.ok && parsed.data.blueprints.length === 1, 'backup round-trips')
+assert(parseBackup('{not json').ok === false, 'invalid JSON rejected')
+assert(parseBackup(JSON.stringify({ app: 'something-else' })).ok === false, 'foreign file rejected')
+assert(parseBackup(JSON.stringify({ app: 'aspir-by-wts', blueprints: [] })).ok === false, 'empty backup rejected')
+const merged = mergeBy([{ id: 'a' }, { id: 'b' }], [{ id: 'b', x: 1 }, { id: 'c' }], 'id')
+assert(merged.length === 3 && merged.find((x) => x.id === 'b').x === 1, 'mergeBy dedupes + incoming wins')
+
+// --- 12. Attention feed ---------------------------------------------------
+assert(attentionItems(null).length === 0, 'attention empty without blueprint')
+const freshBp = generateBlueprint(TECH_FOUNDER_DEMO)
+const attn = attentionItems(freshBp, { prospects: [], savedBlueprints: [] })
+assert(Array.isArray(attn) && attn.length > 0, 'attention surfaces items for a new unsaved blueprint')
+assert(attn.some((a) => a.kind === 'save'), 'flags unsaved blueprint')
+assert(attn.some((a) => a.kind === 'date'), 'flags missing start date')
+assert(attn.every((a) => a.tab && a.text && a.severity), 'attention items are well-formed')
+assert(attn.length <= 6, 'attention capped at 6')
+// a fully-handled blueprint should have fewer nags
+const handled = { ...freshBp, startDate: '2999-01-01' }
+handled.validation = freshBp.validation // undefined ok
+const attn2 = attentionItems(handled, { prospects: [], savedBlueprints: [handled] })
+assert(!attn2.some((a) => a.kind === 'save'), 'saved blueprint not flagged for saving')
 
 // --- summary --------------------------------------------------------------
 console.log(`\n${checks} checks run.`)
