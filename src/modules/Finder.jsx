@@ -157,7 +157,7 @@ export default function Finder() {
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
-            <Field label="Target business model">
+            <Field label="Your business model" hint="sets who to contact & the outreach tone — not which companies show">
               <Select
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
