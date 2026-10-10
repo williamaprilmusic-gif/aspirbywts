@@ -192,6 +192,55 @@ const shopWide = mapElements(
 assert(shopWide.find((c) => c.name === 'Cape Union Mart').relevance === 1, 'ecommerce matches any shop sub-type')
 assert(shopWide.find((c) => c.name === 'WWF South Africa').relevance === 0, 'shop widening does not let an NGO office through')
 
+// Per-model filtering scenarios: each model surfaces its ideal customers and
+// drops the rest. A shared sample is run against every model.
+const marketSample = [
+  { tags: { name: 'Harbour Bistro', amenity: 'restaurant' }, lat: -33.90, lon: 18.40 },
+  { tags: { name: 'Gorgeous George Hotel', amenity: 'hotel' }, lat: -33.91, lon: 18.42 },
+  { tags: { name: 'Kloof Hairdresser', shop: 'hairdresser' }, lat: -33.92, lon: 18.41 },
+  { tags: { name: 'Mr Price Canal Walk', shop: 'clothes' }, lat: -33.89, lon: 18.51 },
+  { tags: { name: 'Cape Union Mart', shop: 'outdoor' }, lat: -33.92, lon: 18.42 },
+  { tags: { name: 'Faithful Wholesale', shop: 'wholesale' }, lat: -33.95, lon: 18.55 },
+  { tags: { name: 'Allan Gray Investment', office: 'financial' }, lat: -33.90, lon: 18.42 },
+  { tags: { name: 'Imperial Logistics CT', office: 'logistics' }, lat: -33.93, lon: 18.50 },
+  { tags: { name: 'Coega Steel Works', industrial: 'factory' }, lat: -33.94, lon: 18.52 },
+  { tags: { name: 'Yoco Software', office: 'it' }, lat: -33.92, lon: 18.43 },
+  { tags: { name: 'Workshop17', amenity: 'coworking_space' }, lat: -33.91, lon: 18.42 },
+  { tags: { name: 'UCT Business School', amenity: 'university' }, lat: -33.90, lon: 18.41 },
+  { tags: { name: 'WWF South Africa', office: 'ngo' }, lat: -33.98, lon: 18.46 },
+]
+const matchedNames = (model) =>
+  new Set(mapElements(marketSample, { model, location: 'Cape Town' }).filter((c) => c.relevance > 0).map((c) => c.name))
+
+const agencyM = matchedNames('agency')
+assert(agencyM.has('Harbour Bistro') && agencyM.has('Gorgeous George Hotel') && agencyM.has('Kloof Hairdresser'), 'agency surfaces restaurants/hotels/salons')
+assert(!agencyM.has('Allan Gray Investment') && !agencyM.has('UCT Business School'), 'agency drops finance offices & universities')
+
+const ecomM = matchedNames('ecommerce')
+assert(ecomM.has('Mr Price Canal Walk') && ecomM.has('Cape Union Mart') && ecomM.has('Faithful Wholesale'), 'ecommerce surfaces all shops incl. un-enumerated sub-types')
+assert(!ecomM.has('Harbour Bistro') && !ecomM.has('Allan Gray Investment'), 'ecommerce drops restaurants & finance offices')
+
+const consultingM = matchedNames('consulting')
+assert(consultingM.has('Allan Gray Investment') && consultingM.has('Imperial Logistics CT') && consultingM.has('Coega Steel Works'), 'consulting surfaces finance/logistics/industrial')
+assert(!consultingM.has('Mr Price Canal Walk') && !consultingM.has('Harbour Bistro'), 'consulting drops retail & hospitality')
+
+const b2bM = matchedNames('b2b-saas')
+assert(b2bM.has('Yoco Software') && b2bM.has('Allan Gray Investment') && b2bM.has('Workshop17'), 'b2b-saas surfaces IT/finance/coworking')
+assert(!b2bM.has('UCT Business School') && !b2bM.has('Mr Price Canal Walk'), 'b2b-saas drops schools & retail')
+
+const microM = matchedNames('micro-saas')
+assert(microM.has('Yoco Software') && microM.has('Workshop17'), 'micro-saas surfaces IT & coworking')
+assert(!microM.has('Imperial Logistics CT') && !microM.has('Allan Gray Investment'), 'micro-saas is narrower: drops enterprise logistics/finance')
+
+const digitalM = matchedNames('digital-products')
+assert(digitalM.has('UCT Business School') && digitalM.has('Yoco Software'), 'digital-products surfaces education & IT')
+assert(!digitalM.has('Allan Gray Investment') && !digitalM.has('Mr Price Canal Walk'), 'digital-products drops finance & retail')
+
+// the NGO is filtered out under every model
+for (const model of ['agency', 'ecommerce', 'consulting', 'b2b-saas', 'micro-saas', 'digital-products']) {
+  assert(!matchedNames(model).has('WWF South Africa'), `NGO office is excluded for ${model}`)
+}
+
 // --- 8. Competitors -------------------------------------------------------
 const comp = generateCompetitors(bpg)
 assert(comp.competitors.some((c) => c.isYou), 'competitor map includes "you"')
