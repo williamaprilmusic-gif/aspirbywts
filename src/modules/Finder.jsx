@@ -52,6 +52,7 @@ export default function Finder() {
   const [domain, setDomain] = useState(seedDomain)
   const [model, setModel] = useState(seedModel)
   const [count, setCount] = useState(24)
+  const [radiusKm, setRadiusKm] = useState(14)
 
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState(null) // 'live' | 'search'
@@ -62,20 +63,26 @@ export default function Finder() {
 
   const buildFallback = () => generateLeads({ city, country, industry, domain, targetModel: model, count: 12 })
 
-  const run = async (e) => {
+  const run = async (e, opts = {}) => {
     e && e.preventDefault()
     if (!city.trim() && !country.trim()) {
       notify('Enter a city or country first', 'info')
       return
     }
+    // opts lets the "Broaden search" action widen without touching the form:
+    // drop the industry filter and/or extend the radius for this run only.
+    const useIndustry = opts.dropIndustry ? '' : industry
+    const useRadius = (opts.radiusKm || radiusKm) * 1000
+    if (opts.dropIndustry && industry.trim()) setIndustry('')
+    if (opts.radiusKm) setRadiusKm(opts.radiusKm)
     setLoading(true)
     setMode(null)
     setCompanies([])
     setSearchResult(null)
     setLiveError('')
     try {
-      const res = await findRealCompanies({ city, country, industry, model, limit: Number(count) })
-      const narrowing = industry.trim() || 'your target market'
+      const res = await findRealCompanies({ city, country, industry: useIndustry, model, limit: Number(count), radius: useRadius })
+      const narrowing = useIndustry.trim() || 'your target market'
       if (res.companies.length > 0 && res.filtered) {
         setCompanies(res.companies)
         setLiveMeta({ location: res.location, lat: res.lat, lon: res.lon, filtered: res.filtered })
@@ -161,14 +168,14 @@ export default function Finder() {
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Industry / sector" hint="helps rank results">
+            <Field label="Industry / sector" hint="separate several with commas">
               <TextInput value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="logistics, retail, IT" />
             </Field>
             <Field label="Your domain / specialty">
               <TextInput value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="supply chain, marketing" />
             </Field>
           </div>
-          <div className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+          <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
             <Field label="Your business model" hint="filters to your ideal customers & sets who to contact">
               <Select
                 value={model}
@@ -181,6 +188,9 @@ export default function Finder() {
             </Field>
             <Field label="Max results" hint={`${count}`}>
               <input type="range" min={6} max={40} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-full" />
+            </Field>
+            <Field label="Search radius" hint={`${radiusKm} km`}>
+              <input type="range" min={2} max={40} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} className="w-full" />
             </Field>
             <Button type="submit" icon={loading ? undefined : Search} disabled={loading}>
               {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Searching…</> : 'Find companies'}
@@ -267,6 +277,21 @@ export default function Finder() {
             segment search below to widen your net.
           </p>
         </>
+      )}
+
+      {/* Broaden: re-run live with a looser filter / wider radius before links */}
+      {mode === 'search' && !loading && (city.trim() || country.trim()) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+          <span className="text-slate-400">Too few matches? Try a wider net:</span>
+          {industry.trim() && (
+            <Button variant="ghost" onClick={() => run(null, { dropIndustry: true })}>Drop the industry filter</Button>
+          )}
+          {radiusKm < 40 && (
+            <Button variant="ghost" onClick={() => run(null, { radiusKm: Math.min(40, radiusKm + 15) })}>
+              Widen radius to {Math.min(40, radiusKm + 15)} km
+            </Button>
+          )}
+        </div>
       )}
 
       {/* FALLBACK: ready-to-run searches */}

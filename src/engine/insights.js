@@ -6,7 +6,7 @@
 
 export function roadmapStats(bp) {
   if (!bp) return { done: 0, total: 0, pct: 0 }
-  const tasks = bp.roadmap.flatMap((p) => p.tasks)
+  const tasks = (bp.roadmap || []).flatMap((p) => p.tasks || [])
   const done = tasks.filter((t) => t.done).length
   const total = tasks.length
   return { done, total, pct: total ? Math.round((done / total) * 100) : 0 }
@@ -48,8 +48,8 @@ export function readinessBand(score) {
 export function nextActions(bp, limit = 3) {
   if (!bp) return []
   const out = []
-  for (const phase of bp.roadmap) {
-    for (const t of phase.tasks) {
+  for (const phase of bp.roadmap || []) {
+    for (const t of phase.tasks || []) {
       if (!t.done) {
         out.push({ phase: phase.title, window: phase.window, text: t.text, phaseId: phase.id, taskId: t.id })
         if (out.length >= limit) return out

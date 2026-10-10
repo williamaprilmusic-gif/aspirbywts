@@ -12,7 +12,7 @@ import { goalsSummary } from '../engine/goals.js'
 import { GettingStarted } from '../components/GuideBar.jsx'
 
 export default function Dashboard() {
-  const { activeBlueprint: bp, prospects, savedBlueprints, setTab, toggleTask } = useApp()
+  const { activeBlueprint: bp, prospects, savedBlueprints, evalSnapshots, setTab, toggleTask } = useApp()
 
   if (!bp) {
     const steps = [
@@ -68,7 +68,7 @@ export default function Dashboard() {
   const hot = topProspects(bp, prospects, 3)
   const { done, total, pct } = roadmapStats(bp)
   const funnel = pipelineFunnel(prospects, bp.id)
-  const attention = attentionItems(bp, { prospects, savedBlueprints })
+  const attention = attentionItems(bp, { prospects, savedBlueprints, evalSnapshots })
   const goals = goalsSummary(bp.goals || [], { bp, prospects })
 
   return (

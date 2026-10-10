@@ -73,15 +73,28 @@ export function mapElements(elements = [], { industry = '', model = '', location
   const keywords = industryKeywords(industry)
   const targets = modelTargets(model)
 
-  const seen = new Set()
+  const seenKeys = new Set() // name@coords — exact place
+  const seenNames = new Set() // name alone — for records lacking coords
   const out = []
   for (const el of elements) {
     const t = el.tags || {}
     const name = (t.name || '').trim()
     if (!name) continue
-    const key = name.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
+    // Dedupe on name + rough location so a multi-branch chain keeps each branch
+    // and two different firms sharing a name aren't collapsed — while an exact
+    // duplicate (OSM often returns a node and a way for one place) still drops.
+    const lname = name.toLowerCase()
+    const elat = el.lat ?? el.center?.lat
+    const elon = el.lon ?? el.center?.lon
+    if (elat != null && elon != null) {
+      const key = `${lname}@${elat.toFixed(3)},${elon.toFixed(3)}`
+      if (seenKeys.has(key)) continue
+      seenKeys.add(key)
+    } else {
+      // No coordinates to disambiguate — fall back to name-only dedupe.
+      if (seenNames.has(lname)) continue
+    }
+    seenNames.add(lname)
 
     const kind =
       t.office || t.shop || t.craft || t.industrial || t.amenity || 'business'
@@ -104,8 +117,6 @@ export function mapElements(elements = [], { industry = '', model = '', location
     // Scoped to `shop` only, so offices tagged ngo/charity stay excluded.
     if (modelMatch === 0 && t.shop && targets.includes('shop')) modelMatch = 1
     const matches = industryMatch + modelMatch
-    const lat = el.lat ?? el.center?.lat
-    const lon = el.lon ?? el.center?.lon
 
     out.push({
       name,
@@ -114,8 +125,8 @@ export function mapElements(elements = [], { industry = '', model = '', location
       phone,
       address,
       location,
-      lat,
-      lon,
+      lat: elat,
+      lon: elon,
       relevance: matches,
     })
   }
@@ -182,9 +193,9 @@ async function overpass(query) {
 }
 
 // Main entry: returns { location, lat, lon, companies: [...] } or throws.
-export async function findRealCompanies({ city = '', country = '', industry = '', model = '', limit = 24 } = {}) {
+export async function findRealCompanies({ city = '', country = '', industry = '', model = '', limit = 24, radius = 14000 } = {}) {
   const geo = await geocode(city, country)
-  const query = buildOverpassQuery(geo.lat, geo.lon, 14000)
+  const query = buildOverpassQuery(geo.lat, geo.lon, radius)
   const data = await overpass(query)
   const location = [city, country].filter(Boolean).join(', ')
   const all = mapElements(data.elements || [], { industry, model, location })

@@ -21,9 +21,26 @@ export function encodeBlueprint(bp) {
   }
 }
 
+// A decoded payload must look like a real blueprint before any module trusts
+// it — otherwise a valid-base64 primitive/array (or a blueprint missing core
+// fields) would set activeBlueprint and crash downstream reads.
+function isBlueprintShape(x) {
+  return (
+    x &&
+    typeof x === 'object' &&
+    !Array.isArray(x) &&
+    x.concept &&
+    typeof x.concept === 'object' &&
+    x.economics &&
+    typeof x.economics === 'object' &&
+    Array.isArray(x.roadmap)
+  )
+}
+
 export function decodeBlueprint(str) {
   try {
-    return JSON.parse(fromB64(str))
+    const parsed = JSON.parse(fromB64(str))
+    return isBlueprintShape(parsed) ? parsed : null
   } catch {
     return null
   }
