@@ -14,7 +14,7 @@ import { computeScenario, defaultScenario } from '../src/engine/scenario.js'
 import { readinessScore, nextActions, pipelineFunnel, roadmapStats } from '../src/engine/insights.js'
 import { generateLeads, leadsToCSV } from '../src/engine/leadFinder.js'
 import { generateOutreach } from '../src/engine/outreach.js'
-import { buildOverpassQuery, mapElements, companyLinks, industryKeywords, modelTargets } from '../src/engine/liveFinder.js'
+import { buildOverpassQuery, mapElements, companyLinks, industryKeywords, modelTargets, isShiftEmployer } from '../src/engine/liveFinder.js'
 import { generateCompetitors } from '../src/engine/competitors.js'
 import { encodeBlueprint, decodeBlueprint } from '../src/engine/share.js'
 import {
@@ -284,6 +284,22 @@ const dup = mapElements(
   { location: 'Cape Town' },
 )
 assert(dup.length === 2, 'mapElements keeps same-name records at different locations, drops exact dupes')
+// shift-work employer detection (night/odd-shift workplaces needing transport)
+assert(isShiftEmployer({}, new Set(['hospital'])) === true, 'hospital flagged as shift employer')
+assert(isShiftEmployer({}, new Set(['factory'])) === true, 'factory flagged as shift employer')
+assert(isShiftEmployer({ opening_hours: '24/7' }, new Set(['office'])) === true, '24/7 opening hours flags shift employer')
+assert(isShiftEmployer({}, new Set(['office']), 'Acme Call Centre') === true, 'call-centre name flags shift employer')
+assert(isShiftEmployer({}, new Set(['restaurant'])) === false, 'a plain restaurant is not a shift employer')
+const shiftMap = mapElements(
+  [
+    { tags: { name: 'Night Factory', industrial: 'factory' }, lat: -33.9, lon: 18.4 },
+    { tags: { name: 'Day Boutique', shop: 'clothes' }, lat: -33.8, lon: 18.5 },
+  ],
+  { location: 'Cape Town' },
+)
+assert(shiftMap.find((c) => c.name === 'Night Factory').shift === true, 'mapElements marks a factory as shift work')
+assert(shiftMap.find((c) => c.name === 'Day Boutique').shift === false, 'mapElements does not mark a clothing shop as shift work')
+assert(shiftMap[0].name === 'Night Factory', 'shift employers rank ahead of non-shift when relevance ties')
 
 // --- 10. Business evaluation ---------------------------------------------
 assert(EVAL_DIMENSIONS.length === 8, 'evaluation has 8 dimensions')
