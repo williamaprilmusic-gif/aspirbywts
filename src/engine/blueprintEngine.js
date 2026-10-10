@@ -12,6 +12,7 @@ export const BUSINESS_MODELS = [
   { id: 'micro-saas', label: 'Micro-SaaS' },
   { id: 'consulting', label: 'High-Ticket Consulting' },
   { id: 'digital-products', label: 'Digital Products' },
+  { id: 'local-service', label: 'Local / B2B Service' },
 ]
 
 export const CURRENCIES = {
@@ -137,6 +138,21 @@ const MODEL_PROFILES = {
     channels: ['Content engine (YouTube / newsletter)', 'Launch waitlists & webinars', 'Affiliate partners', 'Organic social + lead magnets'],
     salesMotion: 'Audience-first funnel: free value → email list → launch cadence.',
   },
+  'local-service': {
+    name: 'Local / B2B Service',
+    baseCac: 300,
+    baseAcv: 14000,
+    grossMargin: 0.45,
+    churnMonthly: 0.025,
+    breakevenMonths: 4,
+    priceTiers: [
+      { name: 'Per-route / job', price: 350, cadence: ' / month', features: ['Single route or site', 'Fixed schedule', 'Standard support'] },
+      { name: 'Contract', price: 1800, cadence: '/mo', features: ['Multiple routes / sites', 'Dedicated account manager', 'SLA & reporting'] },
+      { name: 'Enterprise', price: 6000, cadence: '/mo', features: ['Full coverage', 'Custom scheduling', 'On-site coordinator'] },
+    ],
+    channels: ['Direct outreach to employers & facilities managers', 'Referrals from existing clients', 'Local B2B networking & tenders', 'Targeted LinkedIn to HR / operations leads'],
+    salesMotion: 'Relationship-led B2B sales: site visit → quote → contract.',
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -165,7 +181,7 @@ function computeFitScore(intake) {
 
   // Risk tolerance aligns with aggressive models
   const risk = Number(intake.riskTolerance) || 5
-  if (['agency', 'consulting'].includes(intake.targetModel) && domains >= 2) score += 5
+  if (['agency', 'consulting', 'local-service'].includes(intake.targetModel) && domains >= 2) score += 5
   if (['b2b-saas', 'micro-saas'].includes(intake.targetModel) && hard >= 2) score += 5
   if (intake.technicalResources && intake.technicalResources.trim().length > 10) score += 4
 
@@ -192,6 +208,7 @@ function synthesizeConcept(intake, profile) {
     agency: [`growth-stage companies needing senior ${domain} execution`, `founders who want ${domain} done-for-them, not DIY`],
     consulting: [`executives and founders stuck on a specific ${domain} problem`, `funded startups needing a ${domain} expert on demand`],
     'digital-products': [`aspiring ${domain} practitioners who learn by doing`, `professionals upskilling in ${domain} on their own time`],
+    'local-service': [`employers who need reliable ${domain} handled for their staff`, `operations & facilities managers outsourcing ${domain}`],
   }
 
   const audience = pick(audiences[intake.targetModel] || audiences['b2b-saas'], audienceSeed)
@@ -204,6 +221,7 @@ function synthesizeConcept(intake, profile) {
     agency: ['Collective', 'Studio', 'Labs', 'Partners'],
     consulting: ['Advisory', 'Partners', 'Group', 'Method'],
     'digital-products': ['Academy', 'Playbook', 'Lab', 'School'],
+    'local-service': ['Services', 'Solutions', 'Group', 'Logistics'],
   }
   const suffix = pick(nameSuffix[intake.targetModel] || ['Co'], `${audienceSeed}-sfx`)
   const productName = `${pick(nameRoots, audienceSeed)}${suffix}`
@@ -438,6 +456,7 @@ function buildExecSummary(intake, concept, profile, economics) {
     agency: ['Monthly retainers', 'Project fees', 'Performance / upsell add-ons'],
     consulting: ['High-ticket engagements', 'Monthly advisory retainers', 'Intensive workshops'],
     'digital-products': ['Course & product sales', 'Cohort / community memberships', 'Affiliate & upsell revenue'],
+    'local-service': ['Monthly service contracts', 'Per-route / per-job fees', 'Add-on routes & upsells'],
   }
   const elevator =
     `${concept.productName} is a ${profile.name.toLowerCase()} for ${concept.audience}, ` +

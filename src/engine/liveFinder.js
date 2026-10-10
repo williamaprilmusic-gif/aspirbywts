@@ -57,6 +57,9 @@ const MODEL_TARGETS = {
   agency: ['shop', 'restaurant', 'cafe', 'retail', 'hotel', 'hairdresser', 'beauty', 'fitness', 'clinic', 'dentist', 'car_repair', 'estate_agent'],
   consulting: ['office', 'company', 'manufacturer', 'industrial', 'factory', 'logistics', 'finance', 'financial', 'insurance', 'government'],
   'digital-products': ['office', 'company', 'school', 'college', 'university', 'training', 'coworking', 'it', 'software'],
+  // Service sold to employers with lots of staff (transport, cleaning, security,
+  // catering…). Targets large-headcount workplaces across sectors.
+  'local-service': ['office', 'company', 'industrial', 'factory', 'manufacturer', 'warehouse', 'logistics', 'hospital', 'clinic', 'hotel', 'school', 'college', 'university', 'telecommunication'],
 }
 
 export function modelTargets(model = '') {
