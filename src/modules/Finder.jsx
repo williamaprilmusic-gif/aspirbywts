@@ -62,19 +62,19 @@ export default function Finder() {
     setSearchResult(null)
     setLiveError('')
     try {
-      const res = await findRealCompanies({ city, country, industry, limit: Number(count) })
-      const industryGiven = industry.trim().length > 0
-      if (res.companies.length > 0 && (!industryGiven || res.filtered)) {
+      const res = await findRealCompanies({ city, country, industry, model, limit: Number(count) })
+      const narrowing = industry.trim() || 'your target market'
+      if (res.companies.length > 0 && res.filtered) {
         setCompanies(res.companies)
         setLiveMeta({ location: res.location, lat: res.lat, lon: res.lon, filtered: res.filtered })
         setMode('live')
-        notify(`${res.companies.length} real ${res.filtered ? industry.trim() + ' ' : ''}companies found in ${res.location}`)
-      } else if (res.companies.length > 0 && industryGiven && !res.filtered) {
-        // Businesses exist nearby, but none are tagged as this industry.
-        setLiveError(`No "${industry.trim()}" businesses are tagged in OpenStreetMap around ${res.location}, so we won't show unrelated ones.`)
+        notify(`${res.companies.length} matching companies found in ${res.location}`)
+      } else if (res.companies.length > 0 && !res.filtered) {
+        // Businesses exist nearby, but none match the industry / model fit.
+        setLiveError(`No businesses matching ${narrowing} are tagged in OpenStreetMap around ${res.location}, so we won't show unrelated ones.`)
         setSearchResult(buildFallback())
         setMode('search')
-        notify(`No "${industry.trim()}" listings there — showing ready-to-run searches instead`, 'info')
+        notify('No close matches there — showing ready-to-run searches instead', 'info')
       } else {
         setLiveError(`No businesses are listed in OpenStreetMap for ${res.location} yet.`)
         setSearchResult(buildFallback())
@@ -157,7 +157,7 @@ export default function Finder() {
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
-            <Field label="Your business model" hint="sets who to contact & the outreach tone — not which companies show">
+            <Field label="Your business model" hint="filters to your ideal customers & sets who to contact">
               <Select
                 value={model}
                 onChange={(e) => setModel(e.target.value)}

@@ -14,7 +14,7 @@ import { computeScenario, defaultScenario } from '../src/engine/scenario.js'
 import { readinessScore, nextActions, pipelineFunnel, roadmapStats } from '../src/engine/insights.js'
 import { generateLeads, leadsToCSV } from '../src/engine/leadFinder.js'
 import { generateOutreach } from '../src/engine/outreach.js'
-import { buildOverpassQuery, mapElements, companyLinks, industryKeywords } from '../src/engine/liveFinder.js'
+import { buildOverpassQuery, mapElements, companyLinks, industryKeywords, modelTargets } from '../src/engine/liveFinder.js'
 import { generateCompetitors } from '../src/engine/competitors.js'
 import { encodeBlueprint, decodeBlueprint } from '../src/engine/share.js'
 import {
@@ -163,6 +163,24 @@ const mallTest = mapElements(
 )
 assert(mallTest.find((c) => c.name === 'Canal Walk Shopping Centre').relevance === 0, 'mall does not match "call centre" by substring')
 assert(mallTest.find((c) => c.name === 'Cape Call Experts').relevance === 1, 'real call company matches "call centre"')
+
+// business model contributes ideal-customer categories that filter companies
+assert(modelTargets('agency').includes('restaurant') && modelTargets('b2b-saas').includes('office'), 'model targets map to ideal-customer categories')
+assert(modelTargets('').length === 0 && modelTargets('nope').length === 0, 'unknown/empty model yields no targets')
+const modelTest = mapElements(
+  [
+    { tags: { name: 'Harbour Bistro', amenity: 'restaurant' }, lat: -33.9, lon: 18.4 },
+    { tags: { name: 'Cape Audit Partners', office: 'accountant' }, lat: -33.8, lon: 18.5 },
+  ],
+  { model: 'agency', location: 'Cape Town' },
+)
+assert(modelTest.find((c) => c.name === 'Harbour Bistro').relevance === 1, 'agency model matches a restaurant (ideal customer)')
+assert(modelTest.find((c) => c.name === 'Cape Audit Partners').relevance === 0, 'agency model does not match an accountancy office')
+const combined = mapElements(
+  [{ tags: { name: 'Pixel IT Studio', office: 'it' }, lat: -33.9, lon: 18.4 }],
+  { industry: 'it', model: 'b2b-saas', location: 'Cape Town' },
+)
+assert(combined[0].relevance === 2, 'industry + model matches stack on relevance')
 
 // --- 8. Competitors -------------------------------------------------------
 const comp = generateCompetitors(bpg)
