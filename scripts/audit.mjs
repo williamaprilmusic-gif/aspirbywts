@@ -181,6 +181,16 @@ const combined = mapElements(
   { industry: 'it', model: 'b2b-saas', location: 'Cape Town' },
 )
 assert(combined[0].relevance === 2, 'industry + model matches stack on relevance')
+// a shop-targeting model matches ANY shop, even an un-enumerated sub-type
+const shopWide = mapElements(
+  [
+    { tags: { name: 'Cape Union Mart', shop: 'outdoor' }, lat: -33.9, lon: 18.4 },
+    { tags: { name: 'WWF South Africa', office: 'ngo' }, lat: -33.9, lon: 18.5 },
+  ],
+  { model: 'ecommerce', location: 'Cape Town' },
+)
+assert(shopWide.find((c) => c.name === 'Cape Union Mart').relevance === 1, 'ecommerce matches any shop sub-type')
+assert(shopWide.find((c) => c.name === 'WWF South Africa').relevance === 0, 'shop widening does not let an NGO office through')
 
 // --- 8. Competitors -------------------------------------------------------
 const comp = generateCompetitors(bpg)
