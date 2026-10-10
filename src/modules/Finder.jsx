@@ -17,6 +17,16 @@ const PRIORITY_META = {
   Nurture: { color: 'emerald', icon: Sprout },
 }
 
+// Plain-language explanation of each model + who the finder targets for it.
+const MODEL_INFO = {
+  'b2b-saas': 'Software sold to other businesses on a subscription. Targets offices, IT, finance & logistics firms.',
+  ecommerce: 'Selling physical products online. Targets shops, retailers & wholesalers.',
+  agency: 'A done-for-you service business (marketing, design, dev). Targets restaurants, shops, salons, gyms & hotels.',
+  'micro-saas': 'A small, often one-person software tool. Targets small offices, startups & coworking spaces.',
+  consulting: 'High-value expert advice sold to organisations. Targets corporates, finance, logistics & industrial firms.',
+  'digital-products': 'Courses, templates & downloads you sell once and resell. Targets schools, colleges, universities & offices.',
+}
+
 const CONTACT_BY_MODEL = {
   'b2b-saas': 'Head of Operations',
   'micro-saas': 'Founder / Owner',
@@ -163,6 +173,9 @@ export default function Finder() {
                 onChange={(e) => setModel(e.target.value)}
                 options={BUSINESS_MODELS.map((m) => ({ value: m.id, label: m.label }))}
               />
+              {MODEL_INFO[model] && (
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{MODEL_INFO[model]}</p>
+              )}
             </Field>
             <Field label="Max results" hint={`${count}`}>
               <input type="range" min={6} max={40} value={count} onChange={(e) => setCount(Number(e.target.value))} className="w-full" />
