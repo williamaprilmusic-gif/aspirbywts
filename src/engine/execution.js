@@ -186,10 +186,20 @@ export function getValidation(bp) {
 // ---------------------------------------------------------------------------
 const DAY = 24 * 60 * 60 * 1000
 
-export function attentionItems(bp, { prospects = [], savedBlueprints = [] } = {}) {
+export function attentionItems(bp, { prospects = [], savedBlueprints = [], evalSnapshots = [] } = {}) {
   if (!bp) return []
   const items = []
   const push = (severity, kind, text, tab) => items.push({ severity, kind, text, tab })
+
+  // Latest business-evaluation health score — surface it when it's weak.
+  const lastEval = evalSnapshots[evalSnapshots.length - 1]
+  if (lastEval && typeof lastEval.overall === 'number') {
+    if (lastEval.overall < 50) {
+      push('high', 'evaluation', `Business health score is low (${lastEval.overall}/100) — act on the weakest areas.`, 'evaluate')
+    } else if (lastEval.overall < 70) {
+      push('medium', 'evaluation', `Business health score is ${lastEval.overall}/100 — room to strengthen.`, 'evaluate')
+    }
+  }
 
   // Unsaved blueprint
   if (!savedBlueprints.some((b) => b.id === bp.id)) {

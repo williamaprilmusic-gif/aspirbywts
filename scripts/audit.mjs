@@ -266,6 +266,24 @@ const enc = encodeBlueprint(bpg)
 const dec = decodeBlueprint(enc)
 assert(dec && dec.id === bpg.id, 'share link round-trips a blueprint')
 assert(decodeBlueprint('not-valid-base64!!') === null, 'bad share payload decodes to null (no throw)')
+// shape validation: valid base64 of a non-blueprint must decode to null, not crash downstream
+assert(decodeBlueprint(encodeBlueprint(5)) === null, 'share decode rejects a bare primitive')
+assert(decodeBlueprint(encodeBlueprint([1, 2])) === null, 'share decode rejects an array')
+assert(decodeBlueprint(encodeBlueprint({ concept: {} })) === null, 'share decode rejects a blueprint missing economics/roadmap')
+// insights tolerate a blueprint with no roadmap (older/hand-imported saves)
+assert(roadmapStats({ id: 'x' }).pct === 0, 'roadmapStats handles a blueprint with no roadmap')
+assert(Array.isArray(nextActions({ id: 'x' })) && nextActions({ id: 'x' }).length === 0, 'nextActions handles a blueprint with no roadmap')
+// live finder: radius is honoured, and same-name different-location records are kept
+assert(buildOverpassQuery(-33.9, 18.4, 5000).includes('around:5000'), 'overpass query honours a custom radius')
+const dup = mapElements(
+  [
+    { tags: { name: 'FastShuttle', office: 'company' }, lat: -33.90, lon: 18.40 },
+    { tags: { name: 'FastShuttle', office: 'company' }, lat: -33.95, lon: 18.55 },
+    { tags: { name: 'FastShuttle', office: 'company' }, lat: -33.90, lon: 18.40 },
+  ],
+  { location: 'Cape Town' },
+)
+assert(dup.length === 2, 'mapElements keeps same-name records at different locations, drops exact dupes')
 
 // --- 10. Business evaluation ---------------------------------------------
 assert(EVAL_DIMENSIONS.length === 8, 'evaluation has 8 dimensions')
@@ -307,6 +325,10 @@ const attn = attentionItems(freshBp, { prospects: [], savedBlueprints: [] })
 assert(Array.isArray(attn) && attn.length > 0, 'attention surfaces items for a new unsaved blueprint')
 assert(attn.some((a) => a.kind === 'save'), 'flags unsaved blueprint')
 assert(attn.some((a) => a.kind === 'date'), 'flags missing start date')
+// a low business-health snapshot surfaces in the attention feed → Evaluate tab
+const lowEval = attentionItems(freshBp, { evalSnapshots: [{ at: 't', overall: 40 }] })
+assert(lowEval.some((a) => a.kind === 'evaluation' && a.tab === 'evaluate'), 'low evaluation score surfaces in attention feed')
+assert(!attentionItems(freshBp, { evalSnapshots: [{ at: 't', overall: 85 }] }).some((a) => a.kind === 'evaluation'), 'healthy evaluation score does not nag')
 assert(attn.every((a) => a.tab && a.text && a.severity), 'attention items are well-formed')
 assert(attn.length <= 6, 'attention capped at 6')
 // a fully-handled blueprint should have fewer nags
