@@ -25,6 +25,7 @@ const MODEL_INFO = {
   'micro-saas': 'A small, often one-person software tool. Targets small offices, startups & coworking spaces.',
   consulting: 'High-value expert advice sold to organisations. Targets corporates, finance, logistics & industrial firms.',
   'digital-products': 'Courses, templates & downloads you sell once and resell. Targets schools, colleges, universities & offices.',
+  'local-service': 'A service sold to employers — staff transport, cleaning, security, catering, maintenance. Targets large workplaces: offices, factories, warehouses, hospitals, hotels & call centres.',
 }
 
 const CONTACT_BY_MODEL = {
@@ -34,6 +35,7 @@ const CONTACT_BY_MODEL = {
   agency: 'Marketing lead / Founder',
   consulting: 'Owner / General Manager',
   'digital-products': 'Team / L&D lead',
+  'local-service': 'Operations / Facilities / HR manager',
 }
 
 export default function Finder() {

@@ -236,8 +236,23 @@ const digitalM = matchedNames('digital-products')
 assert(digitalM.has('UCT Business School') && digitalM.has('Yoco Software'), 'digital-products surfaces education & IT')
 assert(!digitalM.has('Allan Gray Investment') && !digitalM.has('Mr Price Canal Walk'), 'digital-products drops finance & retail')
 
+// local/B2B service targets large employers across sectors
+const serviceSample = [
+  { tags: { name: 'Coega Steel Works', industrial: 'factory' }, lat: -33.94, lon: 18.52 },
+  { tags: { name: 'Groote Schuur Hospital', amenity: 'hospital' }, lat: -33.94, lon: 18.46 },
+  { tags: { name: 'Imperial Logistics CT', office: 'logistics' }, lat: -33.93, lon: 18.50 },
+  { tags: { name: 'Harbour Bistro', amenity: 'restaurant' }, lat: -33.90, lon: 18.40 },
+  { tags: { name: 'Mr Price Canal Walk', shop: 'clothes' }, lat: -33.89, lon: 18.51 },
+]
+const serviceM = new Set(mapElements(serviceSample, { model: 'local-service', location: 'Cape Town' }).filter((c) => c.relevance > 0).map((c) => c.name))
+assert(serviceM.has('Coega Steel Works') && serviceM.has('Groote Schuur Hospital') && serviceM.has('Imperial Logistics CT'), 'local-service surfaces factories/hospitals/logistics (large employers)')
+assert(!serviceM.has('Harbour Bistro') && !serviceM.has('Mr Price Canal Walk'), 'local-service drops a single restaurant & clothing shop')
+assert(BUSINESS_MODELS.some((m) => m.id === 'local-service'), 'local-service is a selectable business model')
+const svcBp = generateBlueprint({ ...EMPTY_INTAKE, targetModel: 'local-service' })
+assert(svcBp.execSummary.elevator.includes('local / b2b service'), 'local-service uses its own engine profile, not the b2b-saas fallback')
+
 // the NGO is filtered out under every model
-for (const model of ['agency', 'ecommerce', 'consulting', 'b2b-saas', 'micro-saas', 'digital-products']) {
+for (const model of ['agency', 'ecommerce', 'consulting', 'b2b-saas', 'micro-saas', 'digital-products', 'local-service']) {
   assert(!matchedNames(model).has('WWF South Africa'), `NGO office is excluded for ${model}`)
 }
 
