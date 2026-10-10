@@ -3,7 +3,7 @@ import {
   Stethoscope, Lightbulb, TrendingUp, TrendingDown, Download, Save, RotateCcw, CheckCircle2, AlertTriangle, History, ListPlus, Check, Printer,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
-import { Card, Badge, Button, ProgressBar, ScoreRing } from '../components/ui.jsx'
+import { Card, Badge, Button, ProgressBar, ScoreRing, Select } from '../components/ui.jsx'
 import {
   EVAL_DIMENSIONS, scoreEvaluation, recommendations, evaluationToMarkdown,
 } from '../engine/evaluation.js'
@@ -15,20 +15,24 @@ const RATING_LABELS = ['', 'Poor', 'Weak', 'Okay', 'Good', 'Excellent']
 export default function Evaluate() {
   const { evaluation, setEvalAnswer, resetEvaluation, evalSnapshots, saveEvalSnapshot, activeBlueprint, addTask, setTab, notify, printAs } = useApp()
   const [added, setAdded] = useState({})
+  const phases = activeBlueprint?.roadmap || []
+  const [targetPhaseId, setTargetPhaseId] = useState('')
+  const effectivePhaseId = targetPhaseId || phases[0]?.id || ''
 
   const res = scoreEvaluation(evaluation)
   const recs = recommendations(evaluation, 8)
 
-  // Push an improvement idea into the active blueprint's roadmap (Phase 1)
+  // Push an improvement idea into the chosen roadmap phase (defaults to Phase 1)
   const sendToRoadmap = (rec, idx) => {
     if (!activeBlueprint) {
       notify('Open or generate a blueprint first to add roadmap tasks', 'info')
       return
     }
-    const firstPhase = activeBlueprint.roadmap[0]?.id || 'p1'
-    addTask(firstPhase, `[${rec.dimensionLabel}] ${rec.fix}`)
+    const phaseId = effectivePhaseId || 'p1'
+    addTask(phaseId, `[${rec.dimensionLabel}] ${rec.fix}`)
     setAdded((a) => ({ ...a, [idx]: true }))
-    notify('Added to roadmap (Phase 1)')
+    const phaseTitle = phases.find((p) => p.id === phaseId)?.title || 'roadmap'
+    notify(`Added to ${phaseTitle}`)
   }
 
   const exportMd = () => {
@@ -142,9 +146,22 @@ export default function Evaluate() {
 
       {/* Recommendations */}
       <Card strong>
-        <div className="mb-4 flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-violet-400" />
-          <h2 className="font-semibold text-slate-100">How to improve — prioritized ideas</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-violet-400" />
+            <h2 className="font-semibold text-slate-100">How to improve — prioritized ideas</h2>
+          </div>
+          {phases.length > 0 && (
+            <label className="flex items-center gap-2 text-xs text-slate-400">
+              Add to
+              <Select
+                value={effectivePhaseId}
+                onChange={(e) => setTargetPhaseId(e.target.value)}
+                options={phases.map((p) => ({ value: p.id, label: p.title }))}
+                className="min-w-[10rem]"
+              />
+            </label>
+          )}
         </div>
         {recs.length ? (
           <div className="space-y-3">

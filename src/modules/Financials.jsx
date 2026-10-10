@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { LineChart, TrendingUp, Megaphone, Zap, Target, Percent, ShieldAlert, Clock, SlidersHorizontal, RotateCcw } from 'lucide-react'
+import { LineChart, TrendingUp, Megaphone, Zap, Target, Percent, ShieldAlert, Clock, SlidersHorizontal, RotateCcw, Flag } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, EmptyState, Stat, Field } from '../components/ui.jsx'
 import { money } from '../engine/blueprintEngine.js'
 import { defaultScenario, computeScenario } from '../engine/scenario.js'
+import { defaultGoal } from '../engine/goals.js'
 
 export default function Financials() {
   const { activeBlueprint: bp, setTab } = useApp()
@@ -144,14 +145,28 @@ export default function Financials() {
 }
 
 function ScenarioPanel({ bp, m }) {
+  const { updateActiveBlueprint, setTab, readOnly, notify } = useApp()
   const [s, setS] = useState(() => defaultScenario(bp))
+  const [saved, setSaved] = useState(false)
   const sc = computeScenario(bp, s)
   const maxRev = Math.max(...sc.monthlyDeals.map((d) => d.revenue), 1)
-  const reset = () => setS(defaultScenario(bp))
+  const reset = () => { setS(defaultScenario(bp)); setSaved(false) }
   const baseGross = bp.economics.year1Gross
   const delta = baseGross ? Math.round(((sc.year1Gross - baseGross) / baseGross) * 100) : 0
 
-  const set = (k) => (e) => setS((prev) => ({ ...prev, [k]: Number(e.target.value) }))
+  const set = (k) => (e) => { setS((prev) => ({ ...prev, [k]: Number(e.target.value) })); setSaved(false) }
+
+  // Turn this scenario's projected Year-1 revenue into a tracked goal.
+  const saveAsGoal = () => {
+    const g = {
+      ...defaultGoal('revenue'),
+      label: `Scenario: Year-1 revenue (${s.priceMult.toFixed(2)}× price, ${(s.churnMonthly * 100).toFixed(1)}% churn)`,
+      target: Math.round(sc.year1Gross),
+    }
+    updateActiveBlueprint((prev) => ({ ...prev, goals: [...(prev.goals || []), g] }))
+    setSaved(true)
+    notify('Scenario saved as a revenue goal')
+  }
 
   return (
     <Card strong>
@@ -160,7 +175,16 @@ function ScenarioPanel({ bp, m }) {
           <SlidersHorizontal className="h-5 w-5 text-violet-400" />
           <h2 className="font-semibold text-slate-100">What-If Scenario Modeling</h2>
         </div>
-        <Button variant="subtle" icon={RotateCcw} onClick={reset}>Reset</Button>
+        <div className="flex gap-2">
+          {!readOnly && (
+            saved ? (
+              <Button variant="ghost" icon={Target} onClick={() => setTab('goals')}>View goal</Button>
+            ) : (
+              <Button variant="ghost" icon={Flag} onClick={saveAsGoal}>Save as goal</Button>
+            )
+          )}
+          <Button variant="subtle" icon={RotateCcw} onClick={reset}>Reset</Button>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
