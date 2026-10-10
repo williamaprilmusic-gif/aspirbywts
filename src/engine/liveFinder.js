@@ -95,7 +95,11 @@ export function mapElements(elements = [], { industry = '', model = '', location
         .filter(Boolean),
     )
     const industryMatch = keywords.filter((k) => tokens.has(k)).length
-    const modelMatch = targets.filter((k) => tokens.has(k)).length
+    let modelMatch = targets.filter((k) => tokens.has(k)).length
+    // When the model targets retail ("shop"), count ANY shop as a match even
+    // if its specific sub-type (outdoor, department_store, …) isn't enumerated.
+    // Scoped to `shop` only, so offices tagged ngo/charity stay excluded.
+    if (modelMatch === 0 && t.shop && targets.includes('shop')) modelMatch = 1
     const matches = industryMatch + modelMatch
     const lat = el.lat ?? el.center?.lat
     const lon = el.lon ?? el.center?.lon
