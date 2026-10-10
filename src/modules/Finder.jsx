@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   MapPin, Search, Flame, ThermometerSun, Sprout, ExternalLink, User, Eye, Loader2,
-  BookmarkPlus, Check, Mail, Copy, Globe, Map as MapIcon, Linkedin, Target, Building2, Phone,
+  BookmarkPlus, Check, Mail, Copy, Globe, Map as MapIcon, Linkedin, Target, Building2, Phone, Moon,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext.jsx'
 import { Card, Badge, Button, Field, TextInput, EmptyState, ProgressBar, Modal, Select } from '../components/ui.jsx'
@@ -53,6 +53,7 @@ export default function Finder() {
   const [model, setModel] = useState(seedModel)
   const [count, setCount] = useState(24)
   const [radiusKm, setRadiusKm] = useState(14)
+  const [shiftOnly, setShiftOnly] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState(null) // 'live' | 'search'
@@ -81,13 +82,13 @@ export default function Finder() {
     setSearchResult(null)
     setLiveError('')
     try {
-      const res = await findRealCompanies({ city, country, industry: useIndustry, model, limit: Number(count), radius: useRadius })
+      const res = await findRealCompanies({ city, country, industry: useIndustry, model, limit: Number(count), radius: useRadius, shiftOnly })
       const narrowing = useIndustry.trim() || 'your target market'
       if (res.companies.length > 0 && res.filtered) {
         setCompanies(res.companies)
-        setLiveMeta({ location: res.location, lat: res.lat, lon: res.lon, filtered: res.filtered })
+        setLiveMeta({ location: res.location, lat: res.lat, lon: res.lon, filtered: res.filtered, shiftApplied: res.shiftApplied })
         setMode('live')
-        notify(`${res.companies.length} matching companies found in ${res.location}`)
+        notify(`${res.companies.length} ${res.shiftApplied ? 'shift-work ' : 'matching '}companies found in ${res.location}`)
       } else if (res.companies.length > 0 && !res.filtered) {
         // Businesses exist nearby, but none match the industry / model fit.
         setLiveError(`No businesses matching ${narrowing} are tagged in OpenStreetMap around ${res.location}, so we won't show unrelated ones.`)
@@ -122,11 +123,17 @@ export default function Finder() {
         city: c.city || city,
         country: c.country || country,
         buyerRole: suggestedContact,
-        signal: c.address ? `Based at ${c.address}` : 'Research recent activity before reaching out',
-        reason: `Real ${c.kind} in ${c.location || liveMeta?.location} — a potential fit for your offer.`,
-        outreach: `Reach the ${suggestedContact} at ${c.name}; reference a specific challenge they likely face and offer a quick, free teardown.`,
-        fit: 60 + (c.relevance ? 25 : 0),
-        priority: c.relevance ? 'Warm' : 'Nurture',
+        signal: c.shift
+          ? 'Likely runs night / odd shifts — staff need transport when public transport stops'
+          : c.address ? `Based at ${c.address}` : 'Research recent activity before reaching out',
+        reason: c.shift
+          ? `Real ${c.kind} in ${c.location || liveMeta?.location} that likely operates shifts — a strong fit for staff transport to & from work.`
+          : `Real ${c.kind} in ${c.location || liveMeta?.location} — a potential fit for your offer.`,
+        outreach: c.shift
+          ? `Reach the ${suggestedContact} at ${c.name}; lead with how reliable shift transport cuts lateness and turnover, and offer a free route assessment.`
+          : `Reach the ${suggestedContact} at ${c.name}; reference a specific challenge they likely face and offer a quick, free teardown.`,
+        fit: 60 + (c.relevance ? 20 : 0) + (c.shift ? 10 : 0),
+        priority: c.shift || c.relevance ? 'Warm' : 'Nurture',
         website: links.website,
         phone: c.phone,
         address: c.address,
@@ -196,6 +203,15 @@ export default function Finder() {
               {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Searching…</> : 'Find companies'}
             </Button>
           </div>
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+            <input type="checkbox" checked={shiftOnly} onChange={(e) => setShiftOnly(e.target.checked)} className="mt-0.5 h-4 w-4 accent-violet-500" />
+            <span>
+              <span className="flex items-center gap-1.5 font-medium text-slate-200"><Moon className="h-3.5 w-3.5 text-violet-300" /> Odd / night-shift employers only</span>
+              <span className="mt-0.5 block text-xs text-slate-500">
+                Prioritise workplaces that run 24/7 or night shifts (hospitals, factories, warehouses, call centres, security, logistics) — whose staff need transport when public transport stops.
+              </span>
+            </span>
+          </label>
         </form>
         {bp && (
           <p className="mt-3 text-xs text-slate-500">
@@ -242,7 +258,10 @@ export default function Finder() {
                         </div>
                       </div>
                     </div>
-                    {c.relevance > 0 && <Badge color="emerald">match</Badge>}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      {c.shift && <Badge color="violet"><Moon className="h-3 w-3" /> shift work</Badge>}
+                      {c.relevance > 0 && <Badge color="emerald">match</Badge>}
+                    </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">

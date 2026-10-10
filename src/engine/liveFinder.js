@@ -66,6 +66,26 @@ export function modelTargets(model = '') {
   return MODEL_TARGETS[model] || []
 }
 
+// Categories of workplace that typically run night / early / rotating shifts,
+// so their staff need transport to and from work when public transport doesn't
+// run. Used to flag prime targets for a staff-shuttle service.
+const SHIFT_KINDS = [
+  'hospital', 'clinic', 'factory', 'manufacturer', 'industrial', 'warehouse',
+  'logistics', 'telecommunication', 'security', 'bakery', 'mine', 'fuel',
+  'airport', 'casino', 'hotel', 'distribution', 'cannery', 'brewery',
+]
+// Name hints that strongly imply round-the-clock or shift operations.
+const SHIFT_NAME_HINTS = ['call centre', 'call center', 'bpo', '24/7', '24 hour', 'nightshift', 'night shift', 'distribution centre', 'distribution center', 'fulfils', 'fulfilment', 'fulfillment']
+
+// Decide whether an OSM element looks like a shift-work employer.
+export function isShiftEmployer(tags = {}, tokens = new Set(), name = '') {
+  const hours = (tags.opening_hours || '').toLowerCase()
+  if (hours.includes('24/7')) return true
+  if (SHIFT_KINDS.some((k) => tokens.has(k))) return true
+  const lname = name.toLowerCase()
+  return SHIFT_NAME_HINTS.some((h) => lname.includes(h))
+}
+
 // Turn raw Overpass elements into ranked, de-duplicated company records.
 // When an industry is given, `relevance` counts whole-word keyword hits so the
 // caller can filter to real matches rather than merely re-ordering everything.
@@ -117,6 +137,7 @@ export function mapElements(elements = [], { industry = '', model = '', location
     // Scoped to `shop` only, so offices tagged ngo/charity stay excluded.
     if (modelMatch === 0 && t.shop && targets.includes('shop')) modelMatch = 1
     const matches = industryMatch + modelMatch
+    const shift = isShiftEmployer(t, tokens, name)
 
     out.push({
       name,
@@ -128,11 +149,18 @@ export function mapElements(elements = [], { industry = '', model = '', location
       lat: elat,
       lon: elon,
       relevance: matches,
+      shift,
     })
   }
 
-  // Keyword matches first, then ones with a website, then alphabetically.
-  out.sort((a, b) => b.relevance - a.relevance || (b.website ? 1 : 0) - (a.website ? 1 : 0) || a.name.localeCompare(b.name))
+  // Keyword matches first, then shift employers, then website, then alpha.
+  out.sort(
+    (a, b) =>
+      b.relevance - a.relevance ||
+      (b.shift ? 1 : 0) - (a.shift ? 1 : 0) ||
+      (b.website ? 1 : 0) - (a.website ? 1 : 0) ||
+      a.name.localeCompare(b.name),
+  )
   return out
 }
 
@@ -193,12 +221,18 @@ async function overpass(query) {
 }
 
 // Main entry: returns { location, lat, lon, companies: [...] } or throws.
-export async function findRealCompanies({ city = '', country = '', industry = '', model = '', limit = 24, radius = 14000 } = {}) {
+export async function findRealCompanies({ city = '', country = '', industry = '', model = '', limit = 24, radius = 14000, shiftOnly = false } = {}) {
   const geo = await geocode(city, country)
   const query = buildOverpassQuery(geo.lat, geo.lon, radius)
   const data = await overpass(query)
   const location = [city, country].filter(Boolean).join(', ')
-  const all = mapElements(data.elements || [], { industry, model, location })
+  let all = mapElements(data.elements || [], { industry, model, location })
+
+  // Shift-work focus: keep only employers that likely run night/odd shifts —
+  // the businesses whose staff need transport when buses/taxis don't run.
+  const shiftMatched = all.filter((c) => c.shift)
+  const shiftApplied = shiftOnly && shiftMatched.length > 0
+  if (shiftApplied) all = shiftMatched
 
   // Narrow to real matches when the industry and/or the business model give us
   // something to match on — never pad the list with unrelated businesses
@@ -208,5 +242,14 @@ export async function findRealCompanies({ city = '', country = '', industry = ''
   const filtered = hasFilter && matched.length > 0
   const companies = (filtered ? matched : all).slice(0, limit)
 
-  return { location, lat: geo.lat, lon: geo.lon, companies, filtered, matchedCount: matched.length }
+  return {
+    location,
+    lat: geo.lat,
+    lon: geo.lon,
+    companies,
+    filtered,
+    matchedCount: matched.length,
+    shiftApplied,
+    shiftCount: shiftMatched.length,
+  }
 }
